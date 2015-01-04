@@ -8,15 +8,19 @@ var instanceCounter = 0;
 var regexActionMethod = /^on[A-Z]/;
 
 module.exports = function (StoreClass) {
+	// convert an object into a "class" (use object as prototype on a function)
 	if (!isFunction(StoreClass)) {
 		StoreClass = createClass(StoreClass);
 	}
 
-	// use getInitialState for state, if it exists
-	var state = null,
+	var
+		// keep track of instance state
+		state = null,
 
+		// unique ID to identify this store instance
 		id = instanceCounter++,
 
+		// initialize the state the first time we need it
 		initState = function (self) {
 			// use getInitialState if available
 			if (isFunction(self.getInitialState)) {
@@ -30,6 +34,7 @@ module.exports = function (StoreClass) {
 			return {};
 		},
 		
+		// return a clone of the state
 		getState = function () {
 			if (state === null) {
 				state = initState(instance);
@@ -38,13 +43,14 @@ module.exports = function (StoreClass) {
 			return clone(state);
 		},
 
+		// make sure state is an object
 		checkState = function (state) {
-			// state needs to be an object
 			if (typeof state !== 'object') {
 				throw new TypeError("State must be an object");
 			}
 		},
 
+		// merge a state object into the existing state object
 		setState = function (newState) {
 			checkState(newState);
 
@@ -52,20 +58,23 @@ module.exports = function (StoreClass) {
 				state = initState(this);
 			}
 
-			state = merge(getState(), newState);
+			// start with a copy of both, so nobody has a pointer to it
+			state = getState();
+			newState = clone(newState);
 
-			// clone for private use
-			this.state = getState();
+			// merge in new properties
+			for (k in newState) {
+				state[k] = newState[k];
+			}
+
+			// clone again for private use
+			(instance || this).state = getState();
 			
 			// let everyone know the state has changed
 			emitter.emit(id);
 		},
 
-		// the actual api returned which lets you add a state listener
-		api = {
-			__id: id
-		},
-
+		// add a state change listener
 		addStateListener = function (callback){
 			var handler = function () {
 				callback(getState());
@@ -86,9 +95,7 @@ module.exports = function (StoreClass) {
 			};
 		},
 
-		changeTimeout,
-
-		instance;
+		api, instance;
 
 	// add a few "official" instance methods
 	// providing some functionality to the store
@@ -98,11 +105,11 @@ module.exports = function (StoreClass) {
 	// instantiate the store class
 	instance = new StoreClass();
 
-	// create an instance property with the initial state
+	// create an instance property with a clone of the initial state
 	instance.state = getState();
 
-	// create action methods on the api
-	createActions(api, instance, id);
+	// create & expose the api for public use
+	api = createApi(instance, id);
 
 	// add a single public method for getting state (one time or with a listener)
 	api.getState = function (callback) {
@@ -113,26 +120,14 @@ module.exports = function (StoreClass) {
 		return getState();
 	};
 
-	// expose the api for public use
 	return api;
-};
-
-function createActions(api, instance, id) {
-	registerActionListener(instance, id);
-	createActionMethods(api, instance, id);
 }
 
-function registerActionListener(instance, id) {
-	dispatcher.register(function (payload) {
-		if (payload.id === id) {
-			instance[payload.method].apply(instance, payload.args);
-		}
-	});
-}
+// create the public API with action methods
+function createApi(instance, id) {
+	var api = {}, action, method, actionMethod;
 
-function createActionMethods(api, instance, id) {
-	var action, method, actionMethod;
-
+	// create actions on the api
 	for (method in instance) {
 		if (regexActionMethod.test(method)) {
 			action = createAction(id, method);
@@ -141,6 +136,15 @@ function createActionMethods(api, instance, id) {
 			api[actionMethod] = action;
 		}
 	}
+
+	// register action listener
+	dispatcher.register(function (payload) {
+		if (payload.id === id) {
+			instance[payload.method].apply(instance, payload.args);
+		}
+	});
+	
+	return api;
 }
 
 function createAction(id, method) {
@@ -169,15 +173,6 @@ function getActionMethod(method) {
 // note that we don't want functions in here. no cheating!
 function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
-}
-
-// merge properties from src into dest
-function merge(dest, src) {
-	for (var k in src) {
-		dest[k] = src[k];
-	}
-
-	return dest;
 }
 
 // create a class using an object as a prototype
