@@ -1,7 +1,7 @@
 {
   "name": "hoverboard-flux",
   "main": "dist/hoverboard.js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "homepage": "https://github.com/jesseskinner/hoverboard",
   "description": "A simple and very terse Flux implementation. The future is here.",
   "moduleType": [
@@ -24,8 +24,5 @@
     "package.json",
     "README.md"
   ],
-  "dependencies": {
-    "flux": "~2.0.2",
-    "events": "~1.0.0"
-  }
+  "dependencies": {}
 }
