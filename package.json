@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "browserify": "browserify src/index.js > dist/hoverboard.js",
+    "browserify": "browserify -s Hoverboard src/index.js > dist/hoverboard.js",
     "uglify": "uglify -s dist/hoverboard.js -o dist/hoverboard.min.js",
     "build": "npm run browserify && npm run uglify",
     "test": "mocha"
