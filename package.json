@@ -17,15 +17,15 @@
     "flux",
     "javascript"
   ],
-  "author": "@JesseSkinner",
+  "author": "Jesse Skinner <jesse@thefutureoftheweb.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/jesseskinner/hoverboard/issues"
   },
   "homepage": "https://github.com/jesseskinner/hoverboard",
   "dependencies": {
-    "flux": "^2.0.1",
-    "json2": "^0.4.0"
+    "events": "^1.0.2",
+    "flux": "^2.0.1"
   },
   "devDependencies": {
     "chai": "^1.10.0",
