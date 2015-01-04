@@ -1,6 +1,6 @@
 var chai = require('chai');
 var expect = chai.expect;
-var __ = require('./index');
+var __ = require('../src/index');
 
 describe('hoverboard', function () {
 	

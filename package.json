@@ -2,11 +2,14 @@
   "name": "hoverboard",
   "version": "0.0.1",
   "description": "A simple and very terse Flux implementation. The future is here.",
-  "main": "index.js",
+  "main": "src/index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
+    "browserify": "browserify src/index.js > dist/hoverboard.js",
+    "uglify": "uglify -s dist/hoverboard.js -o dist/hoverboard.min.js",
+    "build": "npm run browserify && npm run uglify",
     "test": "mocha"
   },
   "repository": {
