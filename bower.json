@@ -19,7 +19,7 @@
     "**/.*",
     "node_modules",
     "bower_components",
-    "src"
+    "src",
     "test",
     "package.json",
     "README.md"
