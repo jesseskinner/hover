@@ -320,20 +320,24 @@ module.exports = invariant;
 },{}],4:[function(require,module,exports){
 var Dispatcher = require('flux').Dispatcher;
 var dispatcher = new Dispatcher();
+
 var EventEmitter = require('events').EventEmitter;
-var actionId = 0;
-var actions = [];
+var emitter = new EventEmitter();
+
+var instanceCounter = 0;
+var regexActionMethod = /^on[A-Z]/;
 
 module.exports = function (StoreClass) {
-	if (!isFunction(StoreClass)) {
-		StoreClass = createClass(StoreClass);
-	}
+	StoreClass = createClass(StoreClass);
 
-	// use getInitialState for state, if it exists
-	var state = null,
+	var
+		// keep track of instance state
+		state = null,
 
-		emitter = new EventEmitter(),
+		// unique ID to identify this store instance
+		id = instanceCounter++,
 
+		// initialize the state the first time we need it
 		initState = function (self) {
 			// use getInitialState if available
 			if (isFunction(self.getInitialState)) {
@@ -347,6 +351,7 @@ module.exports = function (StoreClass) {
 			return {};
 		},
 		
+		// return a clone of the state
 		getState = function () {
 			if (state === null) {
 				state = initState(instance);
@@ -355,13 +360,14 @@ module.exports = function (StoreClass) {
 			return clone(state);
 		},
 
+		// make sure state is an object
 		checkState = function (state) {
-			// state needs to be an object
 			if (typeof state !== 'object') {
 				throw new TypeError("State must be an object");
 			}
 		},
 
+		// merge a state object into the existing state object
 		setState = function (newState) {
 			checkState(newState);
 
@@ -369,33 +375,29 @@ module.exports = function (StoreClass) {
 				state = initState(this);
 			}
 
-			state = merge(getState(), clone(newState));
+			// start with a copy of both, so nobody has a pointer to it
+			state = getState();
+			newState = clone(newState);
 
-			// clone twice, one for private use, one for public use
-			this.state = getState();
-			api.state = getState();
-
-			// let everyone know the state has changed
-			emitter.emit('change');
-		},
-
-		listenTo = function (action, callback) {
-			if (!action || typeof action.__action_id !== 'number') {
-				throw new TypeError("Invalid action");
+			// merge in new properties
+			for (k in newState) {
+				state[k] = newState[k];
 			}
 
-			actions[action.__action_id].listeners.push(callback);
+			// clone again for private use
+			(instance || this).state = getState();
+			
+			// let everyone know the state has changed
+			emitter.emit(id);
 		},
 
-		// the actual api returned which lets you add a state listener
-		api = {},
-
+		// add a state change listener
 		addStateListener = function (callback){
 			var handler = function () {
 				callback(getState());
 			}
 
-			emitter.on('change', handler);
+			emitter.on(id, handler);
 
 			// call it once right away
 			handler();
@@ -404,30 +406,27 @@ module.exports = function (StoreClass) {
 			return function () {
 				// only call removeListener once, then destroy the handler
 				if (handler) {
-					emitter.removeListener('change', handler);
+					emitter.removeListener(id, handler);
 					handler = null;
 				}
 			};
 		},
 
-		changeTimeout,
-
-		instance;
+		api, instance;
 
 	// add a few "official" instance methods
 	// providing some functionality to the store
 	StoreClass.prototype.setState = setState;
 	StoreClass.prototype.getState = getState;
-	StoreClass.prototype.listenTo = listenTo;
 
 	// instantiate the store class
 	instance = new StoreClass();
 
-	// create an instance property with the initial state
+	// create an instance property with a clone of the initial state
 	instance.state = getState();
 
-	// create action methods on the api
-	createActions(api, instance);
+	// create & expose the api for public use
+	api = createApi(instance, id);
 
 	// add a single public method for getting state (one time or with a listener)
 	api.getState = function (callback) {
@@ -438,49 +437,31 @@ module.exports = function (StoreClass) {
 		return getState();
 	};
 
-	// expose the api for public use
 	return api;
-};
-
-function createActions(api, instance) {
-	var dispatchToken = dispatcher.register(function (payload) {
-		var action = actions[payload.id], index;
-
-		if (action.dispatchToken === dispatchToken) {
-			action.method.apply(instance, payload.args);
-		
-			// call all listeners after processing
-			if (action.listeners.length) {
-				for (index=0;index < action.listeners.length;index++) {
-					action.listeners[index]();
-				}
-			}
-		}
-	});
-
-	createActionMethods(api, instance, dispatchToken);
 }
 
-function createActionMethods(api, instance, dispatchToken) {
-	var action, key, actionMethod, id;
+// create the public API with action methods
+function createApi(instance, id) {
+	var api = {}, action, method, actionMethod;
 
-	for (key in instance) {
-		if (isActionHandler(key)) {
-			id = actionId++;
-
-			action = createAction(id, key);
-			actionMethod = getActionMethod(key);
-
-			actions[id] = {
-				instance: instance,
-				method: instance[key],
-				dispatchToken: dispatchToken,
-				listeners: []
-			};
+	// create actions on the api
+	for (method in instance) {
+		if (regexActionMethod.test(method)) {
+			action = createAction(id, method);
+			actionMethod = getActionMethod(method);
 
 			api[actionMethod] = action;
 		}
 	}
+
+	// register action listener
+	dispatcher.register(function (payload) {
+		if (payload.id === id) {
+			instance[payload.method].apply(instance, payload.args);
+		}
+	});
+	
+	return api;
 }
 
 function createAction(id, method) {
@@ -494,17 +475,11 @@ function createAction(id, method) {
 		});
 	};
 
-	action.__action_id = id;
-
 	return action;
 }
 
 function isFunction(fn) {
 	return typeof fn === 'function';
-}
-
-function isActionHandler(method) {
-	return /^on[A-Z]/.test(method);
 }
 
 function getActionMethod(method) {
@@ -517,22 +492,26 @@ function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
 
-// merge properties from src into dest
-function merge(dest, src) {
-	for (var k in src) {
-		if (src.hasOwnProperty(k)) {
-			dest[k] = src[k];
-		}
+// create a class using an object as a prototype
+function createClass(StoreClass) {
+	var copy = {}, original;
+
+	if (isFunction(StoreClass)) {
+		original = StoreClass.prototype;
+	} else {
+		// should be an object
+		original = StoreClass;
+		StoreClass = function(){};
 	}
 
-	return dest;
-}
+	// copy properties over so we can mangle them without affecting original
+	for (k in original) {
+		copy[k] = original[k];
+	}
 
-// create a class using an object as a prototype
-function createClass(prototype) {
-	var fn = function(){};
-	fn.prototype = prototype;
-	return fn;
+	StoreClass.prototype = copy;
+
+	return StoreClass;
 }
 },{"events":5,"flux":1}],5:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
