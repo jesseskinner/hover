@@ -132,6 +132,20 @@ describe('hoverboard', function () {
 
 			expect(store.setState).to.be.undefined;
 		});
+
+		it('should not share state between class instances', function () {
+			var Class = function(){};
+			Class.prototype.onChange = function(value) {
+				this.setState({ value: value });
+			};
+
+			var storeA = __(Class),
+				storeB = __(Class);
+
+			storeA.change(true);
+
+			expect(storeB.getState().value).to.be.undefined;
+		});
 	});
 
 	describe('#action()', function () {

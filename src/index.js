@@ -8,10 +8,7 @@ var instanceCounter = 0;
 var regexActionMethod = /^on[A-Z]/;
 
 module.exports = function (StoreClass) {
-	// convert an object into a "class" (use object as prototype on a function)
-	if (!isFunction(StoreClass)) {
-		StoreClass = createClass(StoreClass);
-	}
+	StoreClass = createClass(StoreClass);
 
 	var
 		// keep track of instance state
@@ -176,8 +173,23 @@ function clone(obj) {
 }
 
 // create a class using an object as a prototype
-function createClass(prototype) {
-	var fn = function(){};
-	fn.prototype = prototype;
-	return fn;
+function createClass(StoreClass) {
+	var copy = {}, original;
+
+	if (isFunction(StoreClass)) {
+		original = StoreClass.prototype;
+	} else {
+		// should be an object
+		original = StoreClass;
+		StoreClass = function(){};
+	}
+
+	// copy properties over so we can mangle them without affecting original
+	for (k in original) {
+		copy[k] = original[k];
+	}
+
+	StoreClass.prototype = copy;
+
+	return StoreClass;
 }
