@@ -148,17 +148,13 @@ describe('hoverboard', function () {
 
 		it('should throw an error if we trigger an action from an action handler', function () {
 			var a = __({
-				onFoo: function () {
-					this.foo();
-				},
-				onBar: function () {
+				onTest: function () {
+					a.test();
 				}
 			});
 
 			// trigger an infinite loop
-			expect(function () {
-				a.update();
-			}).to.throw(Error);
+			expect(a.test).to.throw(Error);
 		});
 
 	});
@@ -204,6 +200,9 @@ describe('hoverboard', function () {
 			// unsubscribe the first one
 			unsubscribe();
 
+			// second time does nothing
+			unsubscribe();
+
 			// trigger an update
 			store.update(1);
 		});
@@ -226,39 +225,36 @@ describe('hoverboard', function () {
 			}).to.throw(Error);
 		});
 
-	});
-
-	describe('#listenTo', function () {
-		
-		it('should allow stores to listen to other actions', function () {
+		it('should allow stores to listen to other stores', function () {
 			var original = __({
 				onUpdate: function (number) {
 					this.setState({ number: number });
 				}
 			});
 
-			var listener = __(function(){
-				var self = this;
-
-				this.listenTo(original.update, function () {
-					self.setState({
-						twice: 2 * original.getState().number
-					});
-				});
+			var listener = __({
+				onInit: function () {
+					original.getState(function (state) {
+						this.setState({
+							twice: 2 * state.number
+						});
+					}.bind(this));
+				}
 			});
+
+			listener.init();
 
 			original.update(5);
 
 			expect(listener.getState().twice).to.equal(10);
 		});
 
-		it('should throw an error on an invalid action type', function () {
+		it('should throw an error on an invalid store', function () {
 			expect(function(){
 				__(function(){
-					this.listenTo('blah');
+					this.listenTo(function(){});
 				});
 			}).to.throw(TypeError);
 		});
-
 	});
 });
