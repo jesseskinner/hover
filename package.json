@@ -1,6 +1,6 @@
 {
   "name": "hoverboard",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "A simple and very terse Flux implementation. The future is here.",
   "main": "src/index.js",
   "directories": {
