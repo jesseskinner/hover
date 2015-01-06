@@ -219,10 +219,17 @@ var Hoverboard =
 		return method.charAt(2).toLowerCase() + method.substring(3);
 	}
 
-	// clone an object, only objects and primitives (serializable properties)
-	// note that we don't want functions in here. no cheating!
+	// copy properties over, to come closer to immutable state
 	function clone(obj) {
-		return JSON.parse(JSON.stringify(obj));
+		var dest = {};
+
+		for (var key in obj) {
+			if (obj.hasOwnProperty(key)) {
+				dest[key] = obj[key];
+			}
+		}
+
+		return dest;
 	}
 
 	// create a class using an object as a prototype

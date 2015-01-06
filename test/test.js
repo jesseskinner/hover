@@ -61,16 +61,18 @@ describe('hoverboard', function () {
 		it('should not allow mutation of returned state', function () {
 			var store = __({
 				getInitialState: function () {
-					return { test: { deep: true } }
+					return {
+						test: true
+					};
 				}
 			});
 			
-			store.getState().test.deep = 'bad';
+			store.getState().test = 'bad';
 
-			expect(store.getState().test.deep).to.equal(true);
+			expect(store.getState().test).to.equal(true);
 		});
 
-		it('should not allow functions in state', function () {
+		it('should allow functions in state', function () {
 			var store = __({
 				getInitialState: function () {
 					return {
@@ -79,7 +81,7 @@ describe('hoverboard', function () {
 				}
 			});
 			
-			expect(store.getState().fn).to.be.undefined;
+			expect(store.getState().fn).to.be.a('function');
 		});
 
 		it('should throw TypeError if state is not an object', function () {
