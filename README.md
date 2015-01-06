@@ -2,6 +2,10 @@
 
 A very lightweight Flux implementation. We're talking anti-gravity here.
 
+[![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Bower version][bower-image]][bower-url]
+
+[![Build Status][travis-image]][travis-url] [![Coverage Status][coveralls-image]][coveralls-url] [![Dependency status][david-dm-image]][david-dm-url] [![Dev Dependency status][david-dm-dev-image]][david-dm-dev-url]
+
 
 ## Concept
 
@@ -99,3 +103,18 @@ Jesse Skinner [@JesseSkinner](http://twitter.com/JesseSkinner)
 ## License
 
 MIT
+
+[coveralls-image]: https://coveralls.io/repos/jesseskinner/hoverboard/badge.png
+[coveralls-url]: https://coveralls.io/r/jesseskinner/hoverboard
+
+[npm-url]: https://npmjs.org/package/hoverboard
+[downloads-image]: http://img.shields.io/npm/dm/hoverboard.svg
+[npm-image]: http://img.shields.io/npm/v/hoverboard.svg
+[travis-url]: https://travis-ci.org/jesseskinner/hoverboard
+[travis-image]: http://img.shields.io/travis/jesseskinner/hoverboard.svg
+[david-dm-url]:https://david-dm.org/jesseskinner/hoverboard
+[david-dm-image]:https://david-dm.org/jesseskinner/hoverboard.svg
+[david-dm-dev-url]:https://david-dm.org/jesseskinner/hoverboard#info=devDependencies
+[david-dm-dev-image]:https://david-dm.org/jesseskinner/hoverboard/dev-status.svg
+[bower-url]:http://badge.fury.io/bo/hoverboard-flux
+[bower-image]: https://badge.fury.io/bo/hoverboard-flux.svg
