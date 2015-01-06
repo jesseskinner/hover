@@ -21,11 +21,13 @@ Hoverboard() takes a store definition, and returns actions automatically. Hoverb
 
 Hoverboard also makes it incredibly easy to watch the state of a store. You just call getState, pass in a function, and it'll be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state. Now you can finally ditch those "Controller-Views".
 
-	UserProfileStore.getState(function (state) {
-		var element = React.createElement(UserProfile, state);
+```javascript
+UserProfileStore.getState(function (state) {
+	var element = React.createElement(UserProfile, state);
 
-		React.render(element, document.body);
-	});
+	React.render(element, document.body);
+});
+```
 
 Hoverboard was inspired by other Flux implementations, like [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
 
@@ -33,45 +35,48 @@ Hoverboard was inspired by other Flux implementations, like [Alt](https://github
 
 The following example uses pretty much all of Hoverboard's functionality.
 
-	var ClickCounter = Hoverboard({
-		getInitialState: function () {
-			return {
-				value: 0,
-				log: []
-			};
-		},
-		onClick: function (text) {
-			this.state.value++;
-			this.state.log.push(text);
+```javascript
+var ClickCounter = Hoverboard({
+	getInitialState: function () {
+		return {
+			value: 0,
+			log: []
+		};
+	},
+	onClick: function (text) {
+		this.state.value++;
+		this.state.log.push(text);
 
-			// need to call setState to make it permanent & notify listeners
-			this.setState(this.state);
-		},
-		onReset: function () {
-			this.replaceState(this.getInitialState());
-		}
-	});
+		// need to call setState to make it permanent & notify listeners
+		this.setState(this.state);
+	},
+	onReset: function () {
+		this.replaceState(this.getInitialState());
+	}
+});
 
-	// listen to changes to the state
-	var unsubscribe = ClickCounter.getState(function(clickState){
-		document.write(JSON.stringify(clickState) + "<br>");
-	});
+// listen to changes to the state
+var unsubscribe = ClickCounter.getState(function(clickState){
+	document.write(JSON.stringify(clickState) + "<br>");
+});
 
-	ClickCounter.click('first');
-	ClickCounter.click('second');
-	ClickCounter.reset();
+ClickCounter.click('first');
+ClickCounter.click('second');
+ClickCounter.reset();
 
-	unsubscribe();
+unsubscribe();
 
-	ClickCounter.click("This won't show up");
+ClickCounter.click("This won't show up");
+```
 
 If you run this example, you'll see this:
 
-	{"value":0,"log":[]}
-	{"value":1,"log":["first"]}
-	{"value":2,"log":["first","second"]}
-	{"value":0,"log":[]}
-
+```javascript
+{"value":0,"log":[]}
+{"value":1,"log":["first"]}
+{"value":2,"log":["first","second"]}
+{"value":0,"log":[]}
+```
 
 ## Documentation
 
