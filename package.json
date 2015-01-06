@@ -7,7 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "build": "webpack src/index.js dist/hoverboard.min.js -p",
+    "build-min": "webpack src/index.js dist/hoverboard.min.js -p --output-library Hoverboard",
+    "build-full": "webpack src/index.js dist/hoverboard.js --output-library Hoverboard",
+    "build": "npm run build-full && npm run build-min",
     "watch": "mocha -wGR nyan",
     "test": "mocha"
   },

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Hoverboard Example</title>
+</head>
+<body>
+
+<script src="../dist/hoverboard.min.js"></script>
+
+<script>
+	var ClickCounter = Hoverboard({
+		getInitialState: function () {
+			return {
+				value: 0,
+				log: []
+			};
+		},
+		onClick: function (text) {
+			this.state.value++;
+			this.state.log.push(text);
+
+			// need to call setState to make it permanent & notify listeners
+			this.setState(this.state);
+		},
+		onReset: function () {
+			this.replaceState(this.getInitialState());
+		}
+	});
+
+	// listen to changes to the state
+	var unsubscribe = ClickCounter.getState(function(clickState){
+		document.write(JSON.stringify(clickState) + "<br>");
+	});
+
+	ClickCounter.click('first');
+	ClickCounter.click('second');
+	ClickCounter.reset();
+
+	unsubscribe();
+
+	ClickCounter.click("This won't show up");
+</script>
+	
+</body>
+</html>
