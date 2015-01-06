@@ -7,9 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "browserify": "browserify -s Hoverboard src/index.js > dist/hoverboard.js",
-    "uglify": "uglify -s dist/hoverboard.js -o dist/hoverboard.min.js",
-    "build": "npm run browserify && npm run uglify",
+    "build": "webpack src/index.js dist/hoverboard.min.js -p",
+    "watch": "mocha -wGR nyan",
     "test": "mocha"
   },
   "repository": {
@@ -27,7 +26,6 @@
   },
   "homepage": "https://github.com/jesseskinner/hoverboard",
   "dependencies": {
-    "events": "^1.0.2",
     "flux": "^2.0.1"
   },
   "devDependencies": {

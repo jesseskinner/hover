@@ -148,6 +148,31 @@ describe('hoverboard', function () {
 		});
 	});
 
+	describe('#replaceState', function () {
+		it('should not be public', function () {
+			var store = __({});
+
+			expect(store.replaceState).to.be.undefined;
+		});
+
+		it('should replace the state', function () {
+			var store = __({
+				getInitialState: function () {
+					return {
+						a: 1
+					};
+				},
+				onInit: function () {
+					this.replaceState({ b: 2 });
+				}
+			});
+
+			store.init();
+
+			expect(store.getState()).to.eql({ b: 2 });
+		});
+	});
+
 	describe('#action()', function () {
 		
 		it('should call an action handler', function (done) {

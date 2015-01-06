@@ -56,19 +56,24 @@ module.exports = function (StoreClass) {
 			}
 
 			// start with a copy of both, so nobody has a pointer to it
-			state = getState();
 			newState = clone(newState);
 
 			// merge in new properties
-			for (k in newState) {
-				state[k] = newState[k];
+			for (var key in newState) {
+				state[key] = newState[key];
 			}
 
-			// clone again for private use
-			(instance || this).state = getState();
+			// clone for private use
+			(instance || this).state = clone(state);
 			
 			// let everyone know the state has changed
 			emitter.emit(id);
+		},
+
+		replaceState = function (newState) {
+			// just wipe the state and merge the new one in
+			state = {};
+			setState(newState);
 		},
 
 		// add a state change listener
@@ -96,8 +101,9 @@ module.exports = function (StoreClass) {
 
 	// add a few "official" instance methods
 	// providing some functionality to the store
-	StoreClass.prototype.setState = setState;
 	StoreClass.prototype.getState = getState;
+	StoreClass.prototype.setState = setState;
+	StoreClass.prototype.replaceState = replaceState;
 
 	// instantiate the store class
 	instance = new StoreClass();
