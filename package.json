@@ -11,6 +11,7 @@
     "build-full": "webpack src/index.js dist/hoverboard.js --output-library Hoverboard",
     "build": "npm run build-full && npm run build-min",
     "watch": "mocha -wGR nyan",
+    "test-travis": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
     "test": "mocha"
   },
   "repository": {
@@ -32,6 +33,9 @@
   },
   "devDependencies": {
     "chai": "^1.10.0",
-    "mocha": "^2.1.0"
+    "istanbul": "^0.3.5",
+    "mocha": "^2.1.0",
+    "coveralls": "^2.11.2",
+    "mocha-lcov-reporter": "0.0.1"
   }
 }
