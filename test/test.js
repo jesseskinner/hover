@@ -148,6 +148,19 @@ describe('hoverboard', function () {
 
 			expect(storeB.getState().value).to.be.undefined;
 		});
+
+		it('should destroy any internal mutation of state', function () {
+			var store = __(function () {
+				this.setState({ foo: 1 });
+
+				this.state.foo = 2;
+				
+				this.setState({});
+
+				expect(this.state.foo).to.equal(1);
+			});
+			
+		});
 	});
 
 	describe('#replaceState', function () {
