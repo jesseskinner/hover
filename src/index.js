@@ -4,40 +4,50 @@ var dispatcher = new Dispatcher();
 var EventEmitter = require('events').EventEmitter;
 var emitter = new EventEmitter();
 
+var serialize = JSON.stringify;
+var unserialize = JSON.parse;
+
 var instanceCounter = 0;
-var regexActionMethod = /^on[A-Z]/;
+
+// constants
+var REGEX_ACTION_METHOD = (/^on[A-Z]/);
+var SERIALIZED_EMPTY_OBJECT = '{}';
 
 module.exports = function (StoreClass) {
 	StoreClass = createClass(StoreClass);
 
 	var
-		// keep track of instance state
-		state = null,
+		// keep track of serialized instance state (to ensure immutability)
+		serializedState = null,
 
 		// unique ID to identify this store instance
 		id = instanceCounter++,
 
 		// initialize the state the first time we need it
 		initState = function (self) {
+			if (serializedState !== null) {
+				return
+			}
+
 			// use getInitialState if available
 			if (isFunction(self.getInitialState)) {
 				var state = self.getInitialState();
 
 				checkState(state);
 
-				return state;
+				serializedState = serialize(state);
+			
+			} else {
+				serializedState = SERIALIZED_EMPTY_OBJECT;
+			
 			}
-
-			return {};
 		},
 		
 		// return a clone of the state
 		getState = function () {
-			if (state === null) {
-				state = initState(instance);
-			}
-
-			return clone(state);
+			initState(instance);
+			
+			return unserialize(serializedState);
 		},
 
 		// make sure state is an object
@@ -50,21 +60,21 @@ module.exports = function (StoreClass) {
 		// merge a state object into the existing state object
 		setState = function (newState) {
 			checkState(newState);
-
-			if (state === null) {
-				state = initState(this);
-			}
-
-			// start with a copy of both, so nobody has a pointer to it
-			newState = clone(newState);
+			initState(this);
 
 			// merge in new properties
-			for (var key in newState) {
+			var state = unserialize(serializedState),
+				key;
+
+			for (key in newState) {
 				state[key] = newState[key];
 			}
 
-			// clone for private use
-			(instance || this).state = clone(state);
+			// keep the serialized state around for future use
+			serializedState = serialize(state);
+
+			// make a copy for private use
+			(instance || this).state = unserialize(serializedState);
 			
 			// let everyone know the state has changed
 			emitter.emit(id);
@@ -72,7 +82,7 @@ module.exports = function (StoreClass) {
 
 		replaceState = function (newState) {
 			// just wipe the state and merge the new one in
-			state = {};
+			serializedState = SERIALIZED_EMPTY_OBJECT;
 			setState(newState);
 		},
 
@@ -132,7 +142,7 @@ function createApi(instance, id) {
 
 	// create actions on the api
 	for (method in instance) {
-		if (regexActionMethod.test(method)) {
+		if (REGEX_ACTION_METHOD.test(method)) {
 			action = createAction(id, method);
 			actionMethod = getActionMethod(method);
 
@@ -170,19 +180,6 @@ function isFunction(fn) {
 
 function getActionMethod(method) {
 	return method.charAt(2).toLowerCase() + method.substring(3);
-}
-
-// copy properties over, to come closer to immutable state
-function clone(obj) {
-	var dest = {};
-
-	for (var key in obj) {
-		if (obj.hasOwnProperty(key)) {
-			dest[key] = obj[key];
-		}
-	}
-
-	return dest;
 }
 
 // create a class using an object as a prototype

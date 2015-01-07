@@ -62,17 +62,17 @@ describe('hoverboard', function () {
 			var store = __({
 				getInitialState: function () {
 					return {
-						test: true
+						test: { deep: true }
 					};
 				}
 			});
 			
-			store.getState().test = 'bad';
+			store.getState().test.deep = 'bad';
 
-			expect(store.getState().test).to.equal(true);
+			expect(store.getState().test.deep).to.equal(true);
 		});
 
-		it('should allow functions in state', function () {
+		it('should not allow functions in state', function () {
 			var store = __({
 				getInitialState: function () {
 					return {
@@ -81,7 +81,7 @@ describe('hoverboard', function () {
 				}
 			});
 			
-			expect(store.getState().fn).to.be.a('function');
+			expect(store.getState().fn).to.be.undefined;
 		});
 
 		it('should throw TypeError if state is not an object', function () {
