@@ -43,9 +43,9 @@ module.exports = function (StoreClass) {
 			}
 		},
 		
-		// return a clone of the state
+		// return a fresh copy of the state
 		getState = function () {
-			initState(instance);
+			initState(instance || this);
 			
 			return unserialize(serializedState);
 		},
@@ -66,6 +66,7 @@ module.exports = function (StoreClass) {
 			var state = unserialize(serializedState),
 				key;
 
+			// shallow merge
 			for (key in newState) {
 				state[key] = newState[key];
 			}
@@ -88,13 +89,15 @@ module.exports = function (StoreClass) {
 
 		// add a state change listener
 		addStateListener = function (callback){
+			// create a handler that will pass the state in to callback
 			var handler = function () {
 				callback(getState());
-			}
+			};
 
+			// add handler as listener to change event
 			emitter.on(id, handler);
 
-			// call it once right away
+			// call handler right away
 			handler();
 
 			// return an unsubscribe function specific to this listener
@@ -107,10 +110,15 @@ module.exports = function (StoreClass) {
 			};
 		},
 
-		api, instance;
+		// external api for this store, exposing actions and getState method
+		api,
+
+		// internal store, instance of StoreClass
+		instance;
 
 	// add a few "official" instance methods
 	// providing some functionality to the store
+	// Note: this will replace any methods with the same name in StoreClass
 	StoreClass.prototype.getState = getState;
 	StoreClass.prototype.setState = setState;
 	StoreClass.prototype.replaceState = replaceState;
@@ -118,9 +126,16 @@ module.exports = function (StoreClass) {
 	// instantiate the store class
 	instance = new StoreClass();
 
-	// create an instance property with a clone of the initial state
-	instance.state = getState();
-
+	// register action listener
+	dispatcher.register(function (payload) {
+		if (payload.id === id) {
+			// create a fresh clone of the initial state for every action handler
+			instance.state = getState();
+			
+			instance[payload.method].apply(instance, payload.args);
+		}
+	});
+	
 	// create & expose the api for public use
 	api = createApi(instance, id);
 
@@ -150,13 +165,6 @@ function createApi(instance, id) {
 		}
 	}
 
-	// register action listener
-	dispatcher.register(function (payload) {
-		if (payload.id === id) {
-			instance[payload.method].apply(instance, payload.args);
-		}
-	});
-	
 	return api;
 }
 

@@ -45,17 +45,16 @@ describe('hoverboard', function () {
 	});
 
 	describe('#getState', function(){
-		it('should return empty state object by default', function () {
-			expect(__({}).getState()).to.be.an('object');
+		it('should be available inside a constructor function', function () {
+			__(function () {
+				var getState = this.getState;
+
+				expect(getState()).to.be.an('object');
+			});
 		});
 
-		it('should contain initial state from getInitialState', function () {
-			var store = __({
-				getInitialState: function () {
-					return { test: 123 }
-				}
-			});
-			expect(store.getState().test).to.equal(123);
+		it('should return empty state object by default', function () {
+			expect(__({}).getState()).to.be.an('object');
 		});
 
 		it('should not allow mutation of returned state', function () {
@@ -84,7 +83,41 @@ describe('hoverboard', function () {
 			expect(store.getState().fn).to.be.undefined;
 		});
 
-		it('should throw TypeError if state is not an object', function () {
+	});
+
+	describe('#state', function () {
+		it('should be undefined inside a constructor function', function () {
+			__(function () {
+				expect(this.state).to.be.undefined;
+			});
+		});
+
+		it('should discard mutations between action handlers', function () {
+			var store = __({
+				onFoo: function () {
+					this.state.test = true;
+				},
+				onBar: function () {
+					expect(this.state.test).to.be.undefined();
+				}
+			});
+			
+			store.foo();
+			store.bar();
+		});
+	});
+
+	describe('#getInitialState', function () {
+		it('should update the state', function () {
+			var store = __({
+				getInitialState: function () {
+					return { test: 123 }
+				}
+			});
+			expect(store.getState().test).to.equal(123);
+		});
+
+		it('should throw TypeError if returned state is not an object', function () {
 			function makeStore(){
 				var store = __({
 					getInitialState: function () {
@@ -92,8 +125,27 @@ describe('hoverboard', function () {
 					}
 				});
 			}
-			
-			expect(makeStore).to.throw(TypeError);
+
+			expect(function(){
+				makeStore.getState();
+			}).to.throw(TypeError);
+		});
+
+		it('should not execute until the last minute', function () {
+			var called = false;
+
+			var store = __({
+				getInitialState: function () {
+					called = true;
+					return {};
+				}
+			});
+
+			expect(called).to.be.false;
+
+			store.getState();
+
+			expect(called).to.be.true;
 		});
 	});
 
@@ -301,14 +353,6 @@ describe('hoverboard', function () {
 			original.update(5);
 
 			expect(listener.getState().twice).to.equal(10);
-		});
-
-		it('should throw an error on an invalid store', function () {
-			expect(function(){
-				__(function(){
-					this.listenTo(function(){});
-				});
-			}).to.throw(TypeError);
 		});
 	});
 });
