@@ -29,6 +29,8 @@ UserProfileStore.getState(function (state) {
 });
 ```
 
+Worried about your state being mutated? Every time `getState` is called, a fresh copy of your state is returned. And every time `setState` is called, a fresh copy is made for you to work with inside the store. So you get the simplicity of JavaScript objects and protection from leaky pointers. Hoverboard uses serialization to destroy any object pointers and keep your state fresher longer.
+
 Hoverboard was inspired by other Flux implementations, like [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
 
 ## Usage
