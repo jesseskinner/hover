@@ -1,6 +1,6 @@
 # Hoverboard
 
-A very lightweight Flux implementation. We're talking anti-gravity here.
+A very lightweight [Flux](https://facebook.github.io/flux/) implementation. We're talking anti-gravity here.
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Bower version][bower-image]][bower-url]
 
@@ -9,9 +9,9 @@ A very lightweight Flux implementation. We're talking anti-gravity here.
 
 ## Concept
 
-Hoverboard greatly simplifies Flux while staying true to the concept.
+Hoverboard greatly simplifies [Flux](https://facebook.github.io/flux/) while staying true to the concept.
 
-The official Flux Dispatcher is used internally to pass calls from the actions to the store. This means you can't get in trouble by calling actions from inside actions.
+Facebook's Flux Dispatcher is used internally as a singleton to pass calls from the actions to the store. This means you can't get in trouble by calling actions from inside actions.
 
 We also use EventEmitter to automatically emit change events every time a store updates a state.
 
