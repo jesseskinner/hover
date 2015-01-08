@@ -143,8 +143,11 @@ actions = Hoverboard(store);
 ##### `store` - user defined properties
 
 - `store.getInitialState` (optional)
+
 	- Must return an object containing the initial state for the store.
+
 	- Will not be called until `getState` is called, or an action is handled. So it can be a good place to start loading data from an API.
+
 	- Note: the state must be serializable. This means you cannot have functions or classes in your state.
 
 		```javascript
@@ -156,6 +159,7 @@ actions = Hoverboard(store);
 		```
 
 - `store.onHandleSomeAction` (optional)
+
 	- Any methods with a name like `onFooBar()` (matching `/^on[A-Z]/`) are action handlers, and will be exposed as actions in the returned `actions` object. So `onaction()` will **not** be turned into an action, but `onAction()` will.
 
 	- Specifically, the action names will not have the "on" at the start, and the first character will be lower-case. So `onFooBar()` will be accessible as `fooBar()`.
@@ -175,8 +179,11 @@ actions = Hoverboard(store);
 ##### `store` internal methods and properties
 
 - `this.state` - object property
+
 	- Contains a copy of the current state object. A new copy is made every time `setState` or an action handler are called.
+
 	- If you make changes to `this.state`, they will not affect the store's state. Be sure to use `this.setState(state)` to save the state.
+
 	- Note: `this.state` is not available in the function constructor of a `store`. Use `this.getState()` here instead.
 
 		```javascript
@@ -189,6 +196,7 @@ actions = Hoverboard(store);
 		```
 		
 - `this.getState()`
+
 	- Returns the current state object. Similar to accessing `this.state`.
 
 		```javascript
@@ -200,7 +208,9 @@ actions = Hoverboard(store);
 		```
 
 - `this.setState(partialState)`
+
 	- Updates the store's state, merging the properties in `partialState` to the store's state.
+
 	- Note: the state must be serializable. This means you cannot have functions or classes in your state.
 
 		```javascript
@@ -217,8 +227,11 @@ actions = Hoverboard(store);
 		```
 
 - `this.replaceState(newState)`
+
 	- Replaces the store's state with `newState` object.
+
 	- Similar to `setState` except it erases the previous state before updating.
+
 	- Note: the state must be serializable. This means you cannot have functions or classes in your state.
 
 		```javascript
@@ -238,9 +251,10 @@ actions = Hoverboard(store);
 
 `Hoverboard(store)` will return an `actions` object.
 
-##### `action` object methods
+##### `actions` object methods
 
 - `actions.getState()`
+
 	- Returns a copy of the store's current state.
 
 		```javascript
@@ -248,8 +262,11 @@ actions = Hoverboard(store);
 		```
 
 - `unsubscribe = actions.getState(function(state) {})`
+
 	- Adds a listener to the state of a store.
+	
 	- The listener callback will be called immediately, and again whenever the state changed.
+
     - Returns an unsubscribe function. Call it to stop listening to the state.
 
 		```javascript
@@ -262,7 +279,9 @@ actions = Hoverboard(store);
 		```
 
 - `actions.handleSomeAction(arg1, arg2, ..., argN)`
+
 	- Calls an action handler on the store, passing through any arguments.
+
 	- Only created for actions with a name like onAction (matching `/^on[A-Z]/`).
 	
 		```javascript
