@@ -7,6 +7,18 @@ A very lightweight [Flux](https://facebook.github.io/flux/) implementation. We'r
 [![Build Status][travis-image]][travis-url] [![Coverage Status][coveralls-image]][coveralls-url] [![Dependency status][david-dm-image]][david-dm-url] [![Dev Dependency status][david-dm-dev-image]][david-dm-dev-url]
 
 
+## Installation
+
+You can use either npm or bower to install Hoverboard, or [download the standalone files here](https://github.com/jesseskinner/hoverboard/tree/master/dist).
+
+```
+npm install hoverboard
+```
+
+```
+bower install hoverboard
+```
+
 ## Concept
 
 Hoverboard greatly simplifies [Flux](https://facebook.github.io/flux/) while staying true to the concept.
@@ -29,9 +41,10 @@ UserProfileStore.getState(function (state) {
 });
 ```
 
-Worried about your state being mutated? Every time `getState` is called, a fresh copy of your state is returned. And every time `setState` is called, a fresh copy is made for you to work with inside the store. So you get the simplicity of JavaScript objects and protection from leaky pointers. Hoverboard uses serialization to destroy any object pointers and keep your state fresher longer.
+Worried about your state being mutated? Every time `getState` is called, a fresh copy of your state is returned. And every time `setState` is called, or an action handler is called, a fresh copy is made for you to work with inside the store. So you get the simplicity of JavaScript objects and protection from leaky pointers. Hoverboard uses serialization to destroy any object pointers and keep your state fresher longer.
 
 Hoverboard was inspired by other Flux implementations, like [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
+
 
 ## Usage
 
@@ -80,11 +93,194 @@ If you run this example, you'll see this:
 {"value":0,"log":[]}
 ```
 
+To see how Hoverboard fits into a larger app, with ReactJS and a router, check out the [Hoverboard TodoMVC](http://github.com/jesseskinner/hoverboard-todomvc/).
+
+
 ## Documentation
 
-Coming soon...
+Hoverboard is a function that takes a store as a single parameter, either an object or a function, and returns an object containing actions.
 
-In the meantime, if you're feeling adventurous, have a look at the [test](https://github.com/jesseskinner/hoverboard/blob/master/test/test.js) or check out the [Hoverboard TodoMVC](http://github.com/jesseskinner/hoverboard-todomvc/) to see Hoverboard in action.
+### Syntax
+
+```javascript
+actions = Hoverboard(store);
+```
+
+#### `store` parameter
+
+`store` can either be an object or a function.
+
+- If passed a function, Hoverboard will create the store by instantiating the function with `new store()`.
+
+- If passed an object, Hoverboard will set the object as the `prototype` of an empty function, and instantiate that.
+
+- Either way, your store will end up as an instance of a function.
+
+	```javascript
+	actions = Hoverboard({
+		onSomeAction: function(){
+			this.setState({ year: 1955 });
+		}
+	});
+	```
+
+	```javascript
+	actions = Hoverboard(function(){
+		this.setState({ year: 1985 });
+	});
+	```
+
+	```javascript
+	var StoreClass = function(){};
+
+	StoreClass.prototype.onSomeAction = function(){
+		this.setState({ year: 2015 });
+	};
+
+	actions = Hoverboard(StoreClass);
+	```
+
+##### `store` - user defined properties
+
+- `store.getInitialState` (optional)
+	- Must return an object containing the initial state for the store.
+	- Will not be called until `getState` is called, or an action is handled. So it can be a good place to start loading data from an API.
+
+		```javascript
+		actions = Hoverboard({
+			getInitialState: function(){
+				return { list: [] };
+			}
+		});
+		```
+
+- `store.onHandleSomeAction` (optional)
+	- Any methods with a name like `onFooBar()` (matching `/^on[A-Z]/`) are action handlers, and will be exposed as actions in the returned `actions` object. So `onaction()` will **not** be turned into an action, but `onAction()` will.
+
+	- Specifically, the action names will not have the "on" at the start, and the first character will be lower-case. So `onFooBar()` will be accessible as `fooBar()`.
+
+	- Note: actions cannot be called from other actions, even actions in different stores.
+
+		```javascript
+		actions = Hoverboard({
+			onAddItem: function(text){
+				// add item to database
+			}
+		});
+
+		actions.addItem("abc");
+		```
+
+##### `store` internal methods and properties
+
+- `this.state` - object property
+	- Contains a copy of the current state object.
+	- If you make changes to `this.state`, they will not affect the store's state. Be sure to use `this.setState(state)` to save the state.
+	- Note: `this.state` is not available in the function constructor of a `store`. Use `this.getState()` here instead.
+
+		```javascript
+		Hoverboard({
+			onSomeAction: function(){
+				this.state.newValue = 123;
+				this.setState(this.state);
+			}
+		});
+		```
+		
+- `this.getState()`
+	- Returns the current state object. Similar to accessing `this.state`.
+
+		```javascript
+		Hoverboard(function(){
+			var state = this.getState();
+			state.newValue = 123;
+			this.setState(state);
+		});
+		```
+
+- `this.setState(partialState)`
+	- Updates the store's state, merging the properties in `partialState` to the store's state.
+
+		```javascript
+		Hoverboard({
+			getInitialState: function(){
+				return { sky: 'blue' };
+			},
+			onSomeAction: function(){
+				this.setState({ grass: 'green' });
+
+				// this.state is now: { sky: 'blue', grass: 'green' }
+			}
+		});
+		```
+
+- `this.replaceState(newState)`
+	- Replaces the store's state with `newState` object.
+	- Similar to `setState` except it erases the previous state before updating.
+
+		```javascript
+		Hoverboard({
+			getInitialState: function(){
+				return { sky: 'blue' };
+			},
+			onSomeAction: function(){
+				this.replaceState({ grass: 'green' });
+
+				// this.state is now: { grass: 'green' }
+			}
+		});
+		```
+
+#### Return value
+
+`Hoverboard(store)` will return an `actions` object.
+
+##### `action` object methods
+
+- `actions.getState()`
+	- Returns a copy of the store's current state.
+
+		```javascript
+		state = actions.getState();
+		```
+
+- `unsubscribe = actions.getState(function(state) {})`
+	- Adds a listener to the state of a store.
+	- The listener callback will be called immediately, and again whenever the state changed.
+    - Returns an unsubscribe function. Call it to stop listening to the state.
+
+		```javascript
+		unsubscribe = actions.getState(function(state) {
+			alert(state.value);
+		});
+        
+        // stop listening
+        unsubscribe();
+		```
+
+- `actions.handleSomeAction(arg1, arg2, ..., argN)`
+	- Calls an action handler on the store, passing through any arguments.
+	- Only created for actions with a name like onAction (matching `/^on[A-Z]/`).
+	
+		```javascript
+		actions = Hoverboard({
+			onNotification: function(message) {
+				alert(message); // 123
+			}
+		});
+
+		actions.notification(123);
+		```
+
+
+## Versioning
+
+Hoverboard follows [semver versioning](http://semver.org/). So you can be sure that the API won't change until the next major version.
+
+
+## Testing
+
+Clone the GitHub repository, run `npm install`, and then run `mocha` to run the tests. Hoverboard has 100% test coverage.
 
 
 ## Contributing
@@ -94,12 +290,6 @@ Feel free to [fork this repository on GitHub](https://github.com/jesseskinner/ho
 You can also [create an issue](https://github.com/jesseskinner/hoverboard/issues) if you find a bug or want to request a feature.
 
 Any comments and questions are very much welcome as well.
-
-
-## TODO
-
-- Documentation
-- Finalize API for realsies
 
 
 ## Author
