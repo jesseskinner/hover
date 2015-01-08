@@ -16,7 +16,7 @@ npm install hoverboard
 ```
 
 ```
-bower install hoverboard
+bower install hoverboard-flux
 ```
 
 ## Concept
@@ -282,7 +282,7 @@ actions = Hoverboard(store);
 
 	- Calls an action handler on the store, passing through any arguments.
 
-	- Only created for actions with a name like onAction (matching `/^on[A-Z]/`).
+	- Only created for action handlers with a name like onAction (matching `/^on[A-Z]/`).
 	
 		```javascript
 		actions = Hoverboard({
