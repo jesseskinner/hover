@@ -118,16 +118,14 @@ describe('hoverboard', function () {
 		});
 
 		it('should throw TypeError if returned state is not an object', function () {
-			function makeStore(){
-				var store = __({
-					getInitialState: function () {
-						return 123;
-					}
-				});
-			}
+			var store = __({
+				getInitialState: function () {
+					return 123;
+				}
+			});
 
 			expect(function(){
-				makeStore.getState();
+				store.getState();
 			}).to.throw(TypeError);
 		});
 

@@ -145,6 +145,7 @@ actions = Hoverboard(store);
 - `store.getInitialState` (optional)
 	- Must return an object containing the initial state for the store.
 	- Will not be called until `getState` is called, or an action is handled. So it can be a good place to start loading data from an API.
+	- Note: the state must be serializable. This means you cannot have functions or classes in your state.
 
 		```javascript
 		actions = Hoverboard({
@@ -174,7 +175,7 @@ actions = Hoverboard(store);
 ##### `store` internal methods and properties
 
 - `this.state` - object property
-	- Contains a copy of the current state object.
+	- Contains a copy of the current state object. A new copy is made every time `setState` or an action handler are called.
 	- If you make changes to `this.state`, they will not affect the store's state. Be sure to use `this.setState(state)` to save the state.
 	- Note: `this.state` is not available in the function constructor of a `store`. Use `this.getState()` here instead.
 
@@ -200,6 +201,7 @@ actions = Hoverboard(store);
 
 - `this.setState(partialState)`
 	- Updates the store's state, merging the properties in `partialState` to the store's state.
+	- Note: the state must be serializable. This means you cannot have functions or classes in your state.
 
 		```javascript
 		Hoverboard({
@@ -217,6 +219,7 @@ actions = Hoverboard(store);
 - `this.replaceState(newState)`
 	- Replaces the store's state with `newState` object.
 	- Similar to `setState` except it erases the previous state before updating.
+	- Note: the state must be serializable. This means you cannot have functions or classes in your state.
 
 		```javascript
 		Hoverboard({
