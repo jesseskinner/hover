@@ -23,12 +23,6 @@ bower install hoverboard-flux
 
 Hoverboard greatly simplifies [Flux](https://facebook.github.io/flux/) while staying true to the concept.
 
-Facebook's Flux Dispatcher is used internally as a singleton to pass calls from the actions to the store. This means you can't get in trouble by calling actions from inside actions.
-
-We also use EventEmitter to automatically emit change events every time a store updates a state.
-
-But you don't have to worry about any of that with Hoverboard, it's all taken care of for you.
-
 Hoverboard() takes a store definition, and returns actions automatically. Hoverboard will create actions for all the action handlers you define. What's an action handler? It's a function that starts with the letters "on" followed by an upper case letter (in regexp speak, `/^on[A-Z]/`). For example, if you have `onSomeAction()`, Hoverboard will automatically create an action called `someAction()`. Any other methods are kept private and won't be exposed to the public, so you can sleep with ease.
 
 Hoverboard also makes it incredibly easy to watch the state of a store. You just call getState, pass in a function, and it'll be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state. Now you can finally ditch those "Controller-Views".

@@ -261,6 +261,18 @@ describe('hoverboard', function () {
 			expect(a.test).to.throw(Error);
 		});
 
+		it('should still work with seven arguments', function () {
+			var store = __({
+				onAction: function () {
+					this.setState({ seven: arguments[6] });
+				}
+			});
+
+			store.action(1,2,3,4,5,6,7);
+
+			expect(store.getState().seven).to.equal(7);
+		})
+
 	});
 
 	describe('#getState(function)', function () {

@@ -1,6 +1,3 @@
-var Dispatcher = require('flux').Dispatcher;
-var dispatcher = new Dispatcher();
-
 var EventEmitter = require('events').EventEmitter;
 var emitter = new EventEmitter();
 
@@ -8,6 +5,8 @@ var serialize = JSON.stringify;
 var unserialize = JSON.parse;
 
 var instanceCounter = 0;
+
+var isActionBeingHandled = 0;
 
 // constants
 var REGEX_ACTION_METHOD = (/^on[A-Z]/);
@@ -126,18 +125,25 @@ module.exports = function (StoreClass) {
 	// instantiate the store class
 	instance = new StoreClass();
 
-	// register action listener
-	dispatcher.register(function (payload) {
-		if (payload.id === id) {
-			// create a fresh clone of the initial state for every action handler
-			instance.state = getState();
-			
-			instance[payload.method].apply(instance, payload.args);
-		}
-	});
-	
 	// create & expose the api for public use
-	api = createApi(instance, id);
+	api = createApi(instance, getState, addStateListener);
+
+	return api;
+}
+
+// create the public API with action methods
+function createApi(instance, getState, addStateListener) {
+	var api = {}, action, method, actionMethod;
+
+	// create actions on the api
+	for (method in instance) {
+		if (REGEX_ACTION_METHOD.test(method)) {
+			action = createAction(instance, method, getState);
+			actionMethod = getActionMethod(method);
+
+			api[actionMethod] = action;
+		}
+	}
 
 	// add a single public method for getting state (one time or with a listener)
 	api.getState = function (callback) {
@@ -151,32 +157,31 @@ module.exports = function (StoreClass) {
 	return api;
 }
 
-// create the public API with action methods
-function createApi(instance, id) {
-	var api = {}, action, method, actionMethod;
-
-	// create actions on the api
-	for (method in instance) {
-		if (REGEX_ACTION_METHOD.test(method)) {
-			action = createAction(id, method);
-			actionMethod = getActionMethod(method);
-
-			api[actionMethod] = action;
+function createAction(instance, method, getState) {
+	var action = function (a,b,c,d,e,f) {
+		// prevent a subsequent action being called during an action
+		if (isActionBeingHandled) {
+			throw new Error('Hoverboard: Cannot call action in the middle of an action');
 		}
-	}
 
-	return api;
-}
+		// remember that we're in the middle of an action
+		isActionBeingHandled = 1;
 
-function createAction(id, method) {
-	var action = function () {
-		var args = Array.prototype.slice.call(arguments, 0);
+		// create a copy of the state for local use
+		instance.state = getState();
 
-		dispatcher.dispatch({
-			id: id,
-			method: method,
-			args: args
-		});
+		try {
+			// actually call the action directly. try to avoid use of apply for common cases
+			if (arguments.length < 7) {
+				instance[method](a,b,c,d,e,f);
+			} else {
+				instance[method].apply(instance, arguments);
+			}
+
+		} finally {
+			// whether or not there was an error, we're done here
+			isActionBeingHandled = 0;
+		}
 	};
 
 	return action;
