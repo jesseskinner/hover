@@ -46,12 +46,9 @@ var Hoverboard =
 /***/ function(module, exports, __webpack_require__) {
 
 	var EventEmitter = __webpack_require__(1).EventEmitter;
-	var emitter = new EventEmitter();
 
 	var serialize = JSON.stringify;
 	var unserialize = JSON.parse;
-
-	var instanceCounter = 0;
 
 	var isActionBeingHandled = 0;
 
@@ -66,13 +63,12 @@ var Hoverboard =
 			// keep track of serialized instance state (to ensure immutability)
 			serializedState = null,
 
-			// unique ID to identify this store instance
-			id = instanceCounter++,
+			emitter = new EventEmitter(),
 
 			// initialize the state the first time we need it
 			initState = function (self) {
 				if (serializedState !== null) {
-					return
+					return;
 				}
 
 				// use getInitialState if available
@@ -124,7 +120,7 @@ var Hoverboard =
 				(instance || this).state = unserialize(serializedState);
 				
 				// let everyone know the state has changed
-				emitter.emit(id);
+				emitter.emit(0);
 			},
 
 			replaceState = function (newState) {
@@ -141,7 +137,7 @@ var Hoverboard =
 				};
 
 				// add handler as listener to change event
-				emitter.on(id, handler);
+				emitter.on(0, handler);
 
 				// call handler right away
 				handler();
@@ -150,7 +146,7 @@ var Hoverboard =
 				return function () {
 					// only call removeListener once, then destroy the handler
 					if (handler) {
-						emitter.removeListener(id, handler);
+						emitter.removeListener(0, handler);
 						handler = null;
 					}
 				};
@@ -173,19 +169,19 @@ var Hoverboard =
 		instance = new StoreClass();
 
 		// create & expose the api for public use
-		api = createApi(instance, getState, addStateListener);
+		api = createApi(instance, addStateListener);
 
 		return api;
 	}
 
 	// create the public API with action methods
-	function createApi(instance, getState, addStateListener) {
+	function createApi(instance, addStateListener) {
 		var api = {}, action, method, actionMethod;
 
 		// create actions on the api
 		for (method in instance) {
 			if (REGEX_ACTION_METHOD.test(method)) {
-				action = createAction(instance, method, getState);
+				action = createAction(instance, method);
 				actionMethod = getActionMethod(method);
 
 				api[actionMethod] = action;
@@ -198,13 +194,13 @@ var Hoverboard =
 				return addStateListener(callback);
 			}
 
-			return getState();
+			return instance.getState();
 		};
 
 		return api;
 	}
 
-	function createAction(instance, method, getState) {
+	function createAction(instance, method) {
 		var action = function (a,b,c,d,e,f) {
 			// prevent a subsequent action being called during an action
 			if (isActionBeingHandled) {
@@ -215,7 +211,7 @@ var Hoverboard =
 			isActionBeingHandled = 1;
 
 			// create a copy of the state for local use
-			instance.state = getState();
+			instance.state = instance.getState();
 
 			try {
 				// actually call the action directly. try to avoid use of apply for common cases
