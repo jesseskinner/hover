@@ -1,6 +1,6 @@
 # Hoverboard
 
-A very lightweight [Flux](https://facebook.github.io/flux/) implementation. We're talking anti-gravity here.
+A very lightweight (anti-gravity?) data model and [Flux](https://facebook.github.io/flux/) store with actions and a state change listener.
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Bower version][bower-image]][bower-url]
 
