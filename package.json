@@ -29,9 +29,7 @@
     "url": "https://github.com/jesseskinner/hoverboard/issues"
   },
   "homepage": "https://github.com/jesseskinner/hoverboard",
-  "dependencies": {
-    "flux": "^2.0.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "chai": "^1.10.0",
     "istanbul": "^0.3.5",
