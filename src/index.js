@@ -1,4 +1,4 @@
-var EventEmitter = require('events').EventEmitter;
+'use strict';
 
 var serialize = JSON.stringify;
 var unserialize = JSON.parse;
@@ -16,7 +16,7 @@ module.exports = function (StoreClass) {
 		// keep track of serialized instance state (to ensure immutability)
 		serializedState = null,
 
-		emitter = new EventEmitter(),
+		stateListeners = [],
 
 		// initialize the state the first time we need it
 		initState = function (self) {
@@ -59,7 +59,7 @@ module.exports = function (StoreClass) {
 
 			// merge in new properties
 			var state = unserialize(serializedState),
-				key;
+				key, i;
 
 			// shallow merge
 			for (key in newState) {
@@ -73,7 +73,9 @@ module.exports = function (StoreClass) {
 			(instance || this).state = unserialize(serializedState);
 			
 			// let everyone know the state has changed
-			emitter.emit(0);
+			for (i=0;i < stateListeners.length;i++) {
+				stateListeners[i](getState());
+			}
 		},
 
 		replaceState = function (newState) {
@@ -84,29 +86,21 @@ module.exports = function (StoreClass) {
 
 		// add a state change listener
 		addStateListener = function (callback){
-			// create a handler that will pass the state in to callback
-			var handler = function () {
-				callback(getState());
-			};
+			// add callback as listener to change event
+			stateListeners.push(callback);
 
-			// add handler as listener to change event
-			emitter.on(0, handler);
-
-			// call handler right away
-			handler();
+			// call callback right away
+			callback(getState());
 
 			// return an unsubscribe function specific to this listener
 			return function () {
-				// only call removeListener once, then destroy the handler
-				if (handler) {
-					emitter.removeListener(0, handler);
-					handler = null;
+				// only call removeListener once, then destroy the callback
+				if (callback) {
+					stateListeners = removeListener(stateListeners, callback);
+					callback = null;
 				}
 			};
 		},
-
-		// external api for this store, exposing actions and getState method
-		api,
 
 		// internal store, instance of StoreClass
 		instance;
@@ -121,10 +115,8 @@ module.exports = function (StoreClass) {
 	// instantiate the store class
 	instance = new StoreClass();
 
-	// create & expose the api for public use
-	api = createApi(instance, addStateListener);
-
-	return api;
+	// create & expose the api for public use, exposing actions and getState method
+	return createApi(instance, addStateListener);
 }
 
 // create the public API with action methods
@@ -183,6 +175,20 @@ function createAction(instance, method) {
 	return action;
 }
 
+function removeListener(listeners, callback) {
+	var remainingListeners = [], i, listener;
+
+	for (i=0;i < listeners.length;i++) {
+		listener = listeners[i];
+
+		if (listener !== callback) {
+			remainingListeners.push(listener);
+		}
+	}
+
+	return remainingListeners;
+}
+
 function isFunction(fn) {
 	return typeof fn === 'function';
 }
@@ -193,7 +199,7 @@ function getActionMethod(method) {
 
 // create a class using an object as a prototype
 function createClass(StoreClass) {
-	var copy = {}, original;
+	var copy = {}, original, k;
 
 	if (isFunction(StoreClass)) {
 		original = StoreClass.prototype;

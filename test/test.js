@@ -47,9 +47,7 @@ describe('hoverboard', function () {
 	describe('#getState', function(){
 		it('should be available inside a constructor function', function () {
 			__(function () {
-				var getState = this.getState;
-
-				expect(getState()).to.be.an('object');
+				expect(this.getState()).to.be.an('object');
 			});
 		});
 
