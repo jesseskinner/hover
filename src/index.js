@@ -1,3 +1,4 @@
+module.exports = (function(){
 'use strict';
 
 var serialize = JSON.stringify;
@@ -9,7 +10,107 @@ var isActionBeingHandled = 0;
 var REGEX_ACTION_METHOD = (/^on[A-Z]/);
 var SERIALIZED_EMPTY_OBJECT = '{}';
 
-module.exports = function (StoreClass) {
+// create the public API with action methods
+function createApi(instance, addStateListener) {
+	var api = {}, action, method, actionMethod;
+
+	// create actions on the api
+	for (method in instance) {
+		if (REGEX_ACTION_METHOD.test(method)) {
+			action = createAction(instance, method);
+			actionMethod = getActionMethod(method);
+
+			api[actionMethod] = action;
+		}
+	}
+
+	// add a single public method for getting state (one time or with a listener)
+	api.getState = function (callback) {
+		if (isFunction(callback)) {
+			return addStateListener(callback);
+		}
+
+		return instance.getState();
+	};
+
+	return api;
+}
+
+function createAction(instance, method) {
+	var action = function (a,b,c,d,e,f) {
+		// prevent a subsequent action being called during an action
+		if (isActionBeingHandled) {
+			throw new Error('Hoverboard: Cannot call action in the middle of an action');
+		}
+
+		// remember that we're in the middle of an action
+		isActionBeingHandled = 1;
+
+		// create a copy of the state for local use
+		instance.state = instance.getState();
+
+		try {
+			// actually call the action directly. try to avoid use of apply for common cases
+			if (arguments.length < 7) {
+				instance[method](a,b,c,d,e,f);
+			} else {
+				instance[method].apply(instance, arguments);
+			}
+
+		} finally {
+			// whether or not there was an error, we're done here
+			isActionBeingHandled = 0;
+		}
+	};
+
+	return action;
+}
+
+function removeListener(listeners, callback) {
+	var remainingListeners = [], i, listener;
+
+	for (i=0;i < listeners.length;i++) {
+		listener = listeners[i];
+
+		if (listener !== callback) {
+			remainingListeners.push(listener);
+		}
+	}
+
+	return remainingListeners;
+}
+
+function isFunction(fn) {
+	return typeof fn === 'function';
+}
+
+function getActionMethod(method) {
+	return method.charAt(2).toLowerCase() + method.substring(3);
+}
+
+// create a class using an object as a prototype
+function createClass(StoreClass) {
+	var copy = {}, original, k;
+
+	if (isFunction(StoreClass)) {
+		original = StoreClass.prototype;
+	} else {
+		// should be an object
+		original = StoreClass;
+		StoreClass = function(){};
+	}
+
+	// copy properties over so we can mangle them without affecting original
+	for (k in original) {
+		copy[k] = original[k];
+	}
+
+	StoreClass.prototype = copy;
+
+	return StoreClass;
+}
+
+return function Hoverboard(StoreClass) {
 	StoreClass = createClass(StoreClass);
 
 	var
@@ -117,104 +218,6 @@ module.exports = function (StoreClass) {
 
 	// create & expose the api for public use, exposing actions and getState method
 	return createApi(instance, addStateListener);
-}
+};
 
-// create the public API with action methods
-function createApi(instance, addStateListener) {
-	var api = {}, action, method, actionMethod;
-
-	// create actions on the api
-	for (method in instance) {
-		if (REGEX_ACTION_METHOD.test(method)) {
-			action = createAction(instance, method);
-			actionMethod = getActionMethod(method);
-
-			api[actionMethod] = action;
-		}
-	}
-
-	// add a single public method for getting state (one time or with a listener)
-	api.getState = function (callback) {
-		if (isFunction(callback)) {
-			return addStateListener(callback);
-		}
-
-		return instance.getState();
-	};
-
-	return api;
-}
-
-function createAction(instance, method) {
-	var action = function (a,b,c,d,e,f) {
-		// prevent a subsequent action being called during an action
-		if (isActionBeingHandled) {
-			throw new Error('Hoverboard: Cannot call action in the middle of an action');
-		}
-
-		// remember that we're in the middle of an action
-		isActionBeingHandled = 1;
-
-		// create a copy of the state for local use
-		instance.state = instance.getState();
-
-		try {
-			// actually call the action directly. try to avoid use of apply for common cases
-			if (arguments.length < 7) {
-				instance[method](a,b,c,d,e,f);
-			} else {
-				instance[method].apply(instance, arguments);
-			}
-
-		} finally {
-			// whether or not there was an error, we're done here
-			isActionBeingHandled = 0;
-		}
-	};
-
-	return action;
-}
-
-function removeListener(listeners, callback) {
-	var remainingListeners = [], i, listener;
-
-	for (i=0;i < listeners.length;i++) {
-		listener = listeners[i];
-
-		if (listener !== callback) {
-			remainingListeners.push(listener);
-		}
-	}
-
-	return remainingListeners;
-}
-
-function isFunction(fn) {
-	return typeof fn === 'function';
-}
-
-function getActionMethod(method) {
-	return method.charAt(2).toLowerCase() + method.substring(3);
-}
-
-// create a class using an object as a prototype
-function createClass(StoreClass) {
-	var copy = {}, original, k;
-
-	if (isFunction(StoreClass)) {
-		original = StoreClass.prototype;
-	} else {
-		// should be an object
-		original = StoreClass;
-		StoreClass = function(){};
-	}
-
-	// copy properties over so we can mangle them without affecting original
-	for (k in original) {
-		copy[k] = original[k];
-	}
-
-	StoreClass.prototype = copy;
-
-	return StoreClass;
-}
+})();

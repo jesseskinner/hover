@@ -7,9 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "build-min": "webpack src/index.js dist/hoverboard.min.js -p --output-library Hoverboard",
-    "build-full": "webpack src/index.js dist/hoverboard.js --output-library Hoverboard",
-    "build": "npm run build-full && npm run build-min",
+    "minify": "uglifyjs dist/hoverboard.js -o dist/hoverboard.min.js -m -c",
+    "globalify": "sed 's/module.exports/var Hoverboard/' src/index.js > dist/hoverboard.js",
+    "build": "npm run globalify && npm run minify",
     "watch": "mocha -wGR nyan",
     "test-travis": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
     "test": "mocha"
@@ -32,9 +32,10 @@
   "dependencies": {},
   "devDependencies": {
     "chai": "^1.10.0",
+    "coveralls": "^2.11.2",
     "istanbul": "^0.3.5",
     "mocha": "^2.1.0",
-    "coveralls": "^2.11.2",
-    "mocha-lcov-reporter": "0.0.1"
+    "mocha-lcov-reporter": "0.0.1",
+    "uglify-js": "^2.4.16"
   }
 }
