@@ -315,7 +315,7 @@ As other frameworks start adopting React's strategy of updating the DOM, Hoverbo
 will be a good fit to use with those frameworks as well.
 
 Check out [virtual-dom](https://github.com/Matt-Esch/virtual-dom) as an alternative
-to use React in your projects.
+to using React in your projects.
 
 ---
 
