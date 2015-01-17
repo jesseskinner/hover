@@ -81,6 +81,17 @@ describe('hoverboard', function () {
 			expect(store.getState().fn).to.be.undefined;
 		});
 
+		it('should not be able to cause infinite loop', function () {
+			var store = __({
+				onAction: function () {
+					store.getState(function () {
+						this.setState({ foo: 'bar' });
+					}.bind(this));
+				}
+			});
+
+			expect(store.action).to.throw(Error, /^Hoverboard: Cannot change state during a state change event$/);
+		});
 	});
 
 	describe('#state', function () {
@@ -256,7 +267,7 @@ describe('hoverboard', function () {
 			});
 
 			// trigger an infinite loop
-			expect(a.test).to.throw(Error);
+			expect(a.test).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
 		});
 
 		it('should still work with zero, one, two, three or four arguments', function () {
@@ -345,9 +356,7 @@ describe('hoverboard', function () {
 				store.bar();
 			});
 
-			expect(function () {
-				store.foo();
-			}).to.throw(Error);
+			expect(store.foo).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
 		});
 
 		it('should allow stores to listen to other stores', function () {

@@ -127,6 +127,8 @@ return function Hoverboard(StoreClass) {
 
 		stateListeners = [],
 
+		isStateBeingChanged = 0,
+
 		// initialize the state the first time we need it
 		initState = function (self) {
 			if (serializedState !== null) {
@@ -163,6 +165,14 @@ return function Hoverboard(StoreClass) {
 
 		// merge a state object into the existing state object
 		setState = function (newState) {
+			// if the state for this store is already being changed, throw an error
+			if (isStateBeingChanged) {
+				throw new Error('Hoverboard: Cannot change state during a state change event');
+			}
+
+			// keep track that state for this store is currently being changed
+			isStateBeingChanged = 1;
+
 			checkState(newState);
 			initState(this);
 
@@ -181,9 +191,16 @@ return function Hoverboard(StoreClass) {
 			// make a copy for private use
 			(instance || this).state = unserialize(serializedState);
 			
-			// let everyone know the state has changed
-			for (i=0;i < stateListeners.length;i++) {
-				stateListeners[i](getState());
+			try {
+
+				// let everyone know the state has changed
+				for (i=0;i < stateListeners.length;i++) {
+					stateListeners[i](getState());
+				}
+
+			} finally {
+				// all done changing the state
+				isStateBeingChanged = 0;
 			}
 		},
 
