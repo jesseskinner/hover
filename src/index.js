@@ -1,9 +1,11 @@
 module.exports = (function(){
 'use strict';
 
+// use JSON to serialize and unserialize data
 var serialize = JSON.stringify;
 var unserialize = JSON.parse;
 
+// ensure only one action is handled at a time globally
 var isActionBeingHandled = 0;
 
 // constants
@@ -16,7 +18,9 @@ function createApi(instance, addStateListener) {
 
 	// create actions on the api
 	for (method in instance) {
+		// if it looks like an action handler, eg. onAction
 		if (REGEX_ACTION_METHOD.test(method)) {
+			// create an action on the api with appropriate action name
 			action = createAction(instance, method);
 			actionMethod = getActionMethod(method);
 
@@ -27,17 +31,21 @@ function createApi(instance, addStateListener) {
 	// add a single public method for getting state (one time or with a listener)
 	api.getState = function (callback) {
 		if (isFunction(callback)) {
+			// return an unsubscribe function if callback is provided
 			return addStateListener(callback);
 		}
 
+		// return the state if no callback provided
 		return instance.getState();
 	};
 
 	return api;
 }
 
+// create an action for the api that calls an action handler method on the instance
 function createAction(instance, method) {
-	var action = function (a,b,c) {
+	// return a function that'll be attached to the api
+	return function (a,b,c) {
 		// prevent a subsequent action being called during an action
 		if (isActionBeingHandled) {
 			throw new Error('Hoverboard: Cannot call action in the middle of an action');
@@ -52,7 +60,7 @@ function createAction(instance, method) {
 		try {
 			var len = arguments.length;
 
-			// actually call the action directly. try to avoid use of apply for common cases
+			// actually call the action directly. try to avoid using apply for common cases
 			if (len === 0) {
 				instance[method]();
 			} else if (len === 1) {
@@ -62,6 +70,7 @@ function createAction(instance, method) {
 			} else if (len === 3) {
 				instance[method](a, b, c);
 			} else {
+				// four or more arguments, just use apply
 				instance[method].apply(instance, arguments);
 			}
 
@@ -70,28 +79,31 @@ function createAction(instance, method) {
 			isActionBeingHandled = 0;
 		}
 	};
-
-	return action;
 }
 
+// remove a callback from a list of state change listeners
 function removeListener(listeners, callback) {
 	var remainingListeners = [], i, listener;
 
 	for (i=0;i < listeners.length;i++) {
 		listener = listeners[i];
 
+		// if this is the callback function, don't include it in the new list
 		if (listener !== callback) {
 			remainingListeners.push(listener);
 		}
 	}
 
+	// return the list of listeners other than the callback
 	return remainingListeners;
 }
 
+// helper function to test if a variable is a function
 function isFunction(fn) {
 	return typeof fn === 'function';
 }
 
+// convert an action handler like "onSomeAction" to an action method like "someAction"
 function getActionMethod(method) {
 	return method.charAt(2).toLowerCase() + method.substring(3);
 }
@@ -100,10 +112,11 @@ function getActionMethod(method) {
 function createClass(StoreClass) {
 	var copy = {}, original, k;
 
+	// if a "class" is provided, use the prototype as the object
 	if (isFunction(StoreClass)) {
 		original = StoreClass.prototype;
 	} else {
-		// should be an object
+		// if an object is provided, create a function for the "class"
 		original = StoreClass;
 		StoreClass = function(){};
 	}
@@ -118,19 +131,23 @@ function createClass(StoreClass) {
 	return StoreClass;
 }
 
-return function Hoverboard(StoreClass) {
+// return the Hoverboard function
+return function (StoreClass) {
+	// create a special class based on the function or object provided
 	StoreClass = createClass(StoreClass);
 
-	var
-		// keep track of serialized instance state (to ensure immutability)
-		serializedState = null,
+	// keep track of serialized instance state (to ensure immutability)
+	var serializedState = null,
 
+		// list of state listeners specific to this store instance
 		stateListeners = [],
 
+		// used to provide better error message with circular state listening/changing
 		isStateBeingChanged = 0,
 
 		// initialize the state the first time we need it
 		initState = function (self) {
+			// if already initialized, stop
 			if (serializedState !== null) {
 				return;
 			}
@@ -144,6 +161,7 @@ return function Hoverboard(StoreClass) {
 				serializedState = serialize(state);
 			
 			} else {
+				// default to an empty object
 				serializedState = SERIALIZED_EMPTY_OBJECT;
 			
 			}
@@ -151,6 +169,7 @@ return function Hoverboard(StoreClass) {
 		
 		// return a fresh copy of the state
 		getState = function () {
+			// initialize state for the first time if necessary
 			initState(instance || this);
 			
 			return unserialize(serializedState);
@@ -173,7 +192,10 @@ return function Hoverboard(StoreClass) {
 			// keep track that state for this store is currently being changed
 			isStateBeingChanged = 1;
 
+			// make sure newState is an object
 			checkState(newState);
+
+			// initialize state if necessary
 			initState(this);
 
 			// merge in new properties
@@ -199,11 +221,12 @@ return function Hoverboard(StoreClass) {
 				}
 
 			} finally {
-				// all done changing the state
+				// all done changing the state, even if there was an error
 				isStateBeingChanged = 0;
 			}
 		},
 
+		// allows replacing the state with a new state object
 		replaceState = function (newState) {
 			// just wipe the state and merge the new one in
 			serializedState = SERIALIZED_EMPTY_OBJECT;
@@ -245,4 +268,4 @@ return function Hoverboard(StoreClass) {
 	return createApi(instance, addStateListener);
 };
 
-})();
+})(); // execute immediately
