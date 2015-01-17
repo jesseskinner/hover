@@ -381,6 +381,50 @@ var Store = Hoverboard({
 
 ---
 
+*Q: If Hoverboard stores only have a single getter, how can I have both getAll and getById?*
+
+You can use actions and state. If you have a list of items, and want to view a single item,
+then you might want to have an items property that contains the list, and an item property
+that contains the item you need. Something like this:
+
+```javascript
+var ItemStore = Hoverboard({
+	onItems: function (items) {
+		this.setState({ items: items });
+
+		// update item whenever list of items changes
+		this.updateItem();
+	},
+	onViewById: function (id) {
+		this.setState({ id: id });
+
+		// update item whenever ID changes
+		this.updateItem();
+	},
+	updateItem: function() {
+		var item = null;
+
+		if (this.state.id && this.state.items) {
+			// using underscore for this example for simplicity
+			item = _.find(this.state.items, { id: this.state.id });
+		}
+
+		this.setState({ item: item });
+	}
+});
+
+ItemStore.items([{ id: 123 /* ... */ }]);
+
+// getAll
+var items = ItemStore.getState().items;
+
+// getById
+ItemStore.viewById(123);
+var item = ItemStore.getState().item;
+```
+
+---
+
 *Q: Hold on. There's no global dispatcher and there's no `waitFor`, so are you sure it's really Flux?*
 
 Yes. Ultimately Hoverboard acts as the dispatcher. Every action calls one specific action
