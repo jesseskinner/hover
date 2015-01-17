@@ -343,7 +343,6 @@ var Store = Hoverboard({
 	onError: function(error) {
 		this.setState({ error: error });
 	}
-}
 });
 
 Store.loading(true);
