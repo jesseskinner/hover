@@ -37,7 +37,7 @@ function createApi(instance, addStateListener) {
 }
 
 function createAction(instance, method) {
-	var action = function (a,b,c,d,e,f) {
+	var action = function (a,b,c) {
 		// prevent a subsequent action being called during an action
 		if (isActionBeingHandled) {
 			throw new Error('Hoverboard: Cannot call action in the middle of an action');
@@ -50,9 +50,17 @@ function createAction(instance, method) {
 		instance.state = instance.getState();
 
 		try {
+			var len = arguments.length;
+
 			// actually call the action directly. try to avoid use of apply for common cases
-			if (arguments.length < 7) {
-				instance[method](a,b,c,d,e,f);
+			if (len === 0) {
+				instance[method]();
+			} else if (len === 1) {
+				instance[method](a);
+			} else if (len === 2) {
+				instance[method](a, b);
+			} else if (len === 3) {
+				instance[method](a, b, c);
 			} else {
 				instance[method].apply(instance, arguments);
 			}
