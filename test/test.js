@@ -154,6 +154,48 @@ describe('hoverboard', function () {
 
 			expect(called).to.be.true;
 		});
+
+		it('should allow setState to be called', function () {
+			var store = __({
+				getInitialState: function () {
+					this.setState({
+						a: 3
+					});
+
+					return { a: 1, b: 2 };
+				}
+			});
+
+			expect(store.getState()).to.eql({ a: 3, b: 2 });
+		});
+
+		it('should allow replaceState to be called', function () {
+			var store = __({
+				getInitialState: function () {
+					this.replaceState({
+						a: 3
+					});
+
+					return { a: 1, b: 2 };
+				}
+			});
+
+			expect(store.getState()).to.eql({ a: 3, b: 2 });
+		});
+
+		it('should allow getState to be (uselessly) called', function () {
+			var store = __({
+				getInitialState: function () {
+					var state = this.getState();
+
+					expect(state).to.eql({});
+
+					return { a: 1, b: 2 };
+				}
+			});
+
+			store.getState();
+		});
 	});
 
 	describe('#setState({})', function () {

@@ -152,18 +152,26 @@ return function (StoreClass) {
 				return;
 			}
 
-			// use getInitialState if available
+			// default to an empty object
+			serializedState = SERIALIZED_EMPTY_OBJECT;
+
+			// also use getInitialState if available
 			if (isFunction(self.getInitialState)) {
-				var state = self.getInitialState();
+				var state = self.getInitialState(),
+					currentState = serializedState;
 
-				checkState(state);
+				// if something was returned, merge it in
+				// this allows setState to be called from getInitialState
+				if (state) {
+					checkState(state);
+					serializedState = serialize(state);
 
-				serializedState = serialize(state);
-			
-			} else {
-				// default to an empty object
-				serializedState = SERIALIZED_EMPTY_OBJECT;
-			
+					// if state had changed since getInitialState started
+					// then merge it into the initial state returned
+					if (currentState !== SERIALIZED_EMPTY_OBJECT) {
+						setState(unserialize(currentState));
+					}
+				}
 			}
 		},
 		
@@ -184,6 +192,12 @@ return function (StoreClass) {
 
 		// merge a state object into the existing state object
 		setState = function (newState) {
+			// make sure newState is an object
+			checkState(newState);
+
+			// initialize state if necessary
+			initState(this);
+
 			// if the state for this store is already being changed, throw an error
 			if (isStateBeingChanged) {
 				throw new Error('Hoverboard: Cannot change state during a state change event');
@@ -191,12 +205,6 @@ return function (StoreClass) {
 
 			// keep track that state for this store is currently being changed
 			isStateBeingChanged = 1;
-
-			// make sure newState is an object
-			checkState(newState);
-
-			// initialize state if necessary
-			initState(this);
 
 			// merge in new properties
 			var state = unserialize(serializedState),
