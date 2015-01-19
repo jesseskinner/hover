@@ -55,7 +55,7 @@ describe('hoverboard', function () {
 			expect(__({}).getState()).to.be.an('object');
 		});
 
-		it('should not allow mutation of returned state', function () {
+		it('should allow mutation of returned state by default', function () {
 			var store = __({
 				getInitialState: function () {
 					return {
@@ -66,15 +66,47 @@ describe('hoverboard', function () {
 			
 			store.getState().test.deep = 'bad';
 
+			expect(store.getState().test.deep).to.equal('bad');
+		});
+
+		it('should not allow mutation of returned state with custom getState', function () {
+			var store = __({
+				getInitialState: function () {
+					return {
+						test: { deep: true }
+					};
+				},
+				getState: function(state) {
+					return JSON.parse(JSON.stringify(state));
+				}
+			});
+			
+			store.getState().test.deep = 'bad';
+
 			expect(store.getState().test.deep).to.equal(true);
 		});
 
-		it('should not allow functions in state', function () {
+		it('should allow functions in state', function () {
 			var store = __({
 				getInitialState: function () {
 					return {
 						fn: function(){}
 					};
+				}
+			});
+			
+			expect(store.getState().fn).to.be.a('function');
+		});
+
+		it('should not allow functions in state with custom getState', function () {
+			var store = __({
+				getInitialState: function () {
+					return {
+						fn: function(){}
+					};
+				},
+				getState: function(state) {
+					return JSON.parse(JSON.stringify(state));
 				}
 			});
 			
@@ -101,13 +133,30 @@ describe('hoverboard', function () {
 			});
 		});
 
-		it('should discard mutations between action handlers', function () {
+		it('should not discard mutations between action handlers', function () {
+			var store = __({
+				onFoo: function () {
+					this.state.test = true;
+				},
+				onBar: function () {
+					expect(this.state.test).to.be.true;
+				}
+			});
+			
+			store.foo();
+			store.bar();
+		});
+
+		it('should discard mutations between action handlers with custom getState', function () {
 			var store = __({
 				onFoo: function () {
 					this.state.test = true;
 				},
 				onBar: function () {
 					expect(this.state.test).to.be.undefined();
+				},
+				getState: function(state) {
+					return JSON.parse(JSON.stringify(state));
 				}
 			});
 			
@@ -126,16 +175,14 @@ describe('hoverboard', function () {
 			expect(store.getState().test).to.equal(123);
 		});
 
-		it('should throw TypeError if returned state is not an object', function () {
+		it('should throw allow state types are are not objects', function () {
 			var store = __({
 				getInitialState: function () {
 					return 123;
 				}
 			});
 
-			expect(function(){
-				store.getState();
-			}).to.throw(TypeError);
+			expect(store.getState()).to.equal(123);
 		});
 
 		it('should not execute until the last minute', function () {
@@ -243,6 +290,7 @@ describe('hoverboard', function () {
 			};
 
 			var storeA = __(Class),
+				x = console.log(Class.prototype),
 				storeB = __(Class);
 
 			storeA.change(true);
@@ -250,7 +298,7 @@ describe('hoverboard', function () {
 			expect(storeB.getState().value).to.be.undefined;
 		});
 
-		it('should destroy any internal mutation of state', function () {
+		it('should not destroy any internal mutation of state', function () {
 			var store = __(function () {
 				this.setState({ foo: 1 });
 
@@ -258,7 +306,25 @@ describe('hoverboard', function () {
 				
 				this.setState({});
 
-				expect(this.state.foo).to.equal(1);
+				expect(this.state.foo).to.equal(2);
+			});
+			
+		});
+
+		it('should destroy any internal mutation of state if custom setState', function () {
+			var store = __({
+				getInitialState: function () {
+					this.setState({ foo: 1 });
+
+					this.state.foo = 2;
+					
+					this.setState({});
+
+					expect(this.state.foo).to.equal(1);
+				},
+				getState: function(state){
+					return JSON.parse(JSON.stringify(state));
+				}
 			});
 			
 		});

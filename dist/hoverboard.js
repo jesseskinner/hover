@@ -1,16 +1,13 @@
 var Hoverboard = (function(){
 'use strict';
 
-// use JSON to serialize and unserialize data
-var serialize = JSON.stringify;
-var unserialize = JSON.parse;
-
 // ensure only one action is handled at a time globally
 var isActionBeingHandled = 0;
 
 // constants
 var REGEX_ACTION_METHOD = (/^on[A-Z]/);
-var SERIALIZED_EMPTY_OBJECT = '{}';
+
+var NOOP = function(){};
 
 // create the public API with action methods
 function createApi(instance, addStateListener) {
@@ -103,41 +100,49 @@ function isFunction(fn) {
 	return typeof fn === 'function';
 }
 
+function isObject(obj) {
+	return obj && typeof obj === 'object' && (
+		typeof obj.length !== 'number' || !isFunction(obj.splice)
+	);
+}
+
 // convert an action handler like "onSomeAction" to an action method like "someAction"
 function getActionMethod(method) {
 	return method.charAt(2).toLowerCase() + method.substring(3);
 }
 
 // create a class using an object as a prototype
-function createClass(StoreClass) {
-	var copy = {}, original, k;
+function createClass(originalClass, initSelf) {
+	var newClass = function(){
+		initSelf(this);
+		
+		if (constructor) {
+			constructor.apply(this);
+		}
+	}, original, k, constructor;
 
 	// if a "class" is provided, use the prototype as the object
-	if (isFunction(StoreClass)) {
-		original = StoreClass.prototype;
+	if (isFunction(originalClass)) {
+		original = originalClass.prototype;
+		constructor = originalClass;
+		
 	} else {
-		// if an object is provided, create a function for the "class"
-		original = StoreClass;
-		StoreClass = function(){};
+		// if an object is provided, use that as the prototype
+		original = originalClass;
 	}
 
 	// copy properties over so we can mangle them without affecting original
 	for (k in original) {
-		copy[k] = original[k];
+		newClass.prototype[k] = original[k];
 	}
 
-	StoreClass.prototype = copy;
-
-	return StoreClass;
+	return newClass;
 }
 
 // return the Hoverboard function
 return function (StoreClass) {
-	// create a special class based on the function or object provided
-	StoreClass = createClass(StoreClass);
-
-	// keep track of serialized instance state (to ensure immutability)
-	var serializedState = null,
+	// keep track of instance state, defaults to empty object
+	var officialState = {},
 
 		// list of state listeners specific to this store instance
 		stateListeners = [],
@@ -145,32 +150,26 @@ return function (StoreClass) {
 		// used to provide better error message with circular state listening/changing
 		isStateBeingChanged = 0,
 
+		// keep track of whether state has ever changed, for initState
+		hasStateBeenChanged = 0,
+
 		// initialize the state the first time we need it
-		initState = function (self) {
-			// if already initialized, stop
-			if (serializedState !== null) {
-				return;
-			}
+		initState = function () {
+			// do not allow initState to be called again
+			initState = NOOP;
 
-			// default to an empty object
-			serializedState = SERIALIZED_EMPTY_OBJECT;
+			// use getInitialState if available
+			if (isFunction(instance.getInitialState)) {
+				var state = instance.getInitialState(),
+					currentState = officialState;
 
-			// also use getInitialState if available
-			if (isFunction(self.getInitialState)) {
-				var state = self.getInitialState(),
-					currentState = serializedState;
+				officialState = state;
 
-				// if something was returned, merge it in
+				// if state had changed since getInitialState started
+				// then merge it into the initial state returned
 				// this allows setState to be called from getInitialState
-				if (state) {
-					checkState(state);
-					serializedState = serialize(state);
-
-					// if state had changed since getInitialState started
-					// then merge it into the initial state returned
-					if (currentState !== SERIALIZED_EMPTY_OBJECT) {
-						setState(unserialize(currentState));
-					}
+				if (hasStateBeenChanged) {
+					setState(currentState);
 				}
 			}
 		},
@@ -178,49 +177,48 @@ return function (StoreClass) {
 		// return a fresh copy of the state
 		getState = function () {
 			// initialize state for the first time if necessary
-			initState(instance || this);
+			initState();
 			
-			return unserialize(serializedState);
+			return userGetState(officialState);
 		},
 
-		// make sure state is an object
-		checkState = function (state) {
-			if (typeof state !== 'object') {
-				throw new TypeError("State must be an object");
-			}
+		userGetState = function (state) {
+			return state;
 		},
 
 		// merge a state object into the existing state object
 		setState = function (newState) {
-			// make sure newState is an object
-			checkState(newState);
-
 			// initialize state if necessary
-			initState(this);
+			initState();
 
 			// if the state for this store is already being changed, throw an error
 			if (isStateBeingChanged) {
 				throw new Error('Hoverboard: Cannot change state during a state change event');
 			}
 
-			// keep track that state for this store is currently being changed
-			isStateBeingChanged = 1;
+			// keep track that state for this store is currently being or has ever changed
+			hasStateBeenChanged = isStateBeingChanged = 1;
 
-			// merge in new properties
-			var state = unserialize(serializedState),
-				key, i;
+			// if officialState and newState are objects, merge in new properties
+			if (isObject(officialState) && isObject(newState)) {
+				var key, i;
 
-			// shallow merge
-			for (key in newState) {
-				state[key] = newState[key];
+				// shallow merge
+				for (key in newState) {
+					officialState[key] = newState[key];
+				}
+
+			// otherwise, just use the newState as official state
+			} else {
+				officialState = newState;
 			}
 
-			// keep the serialized state around for future use
-			serializedState = serialize(state);
+			// make an internal copy, if necessary
+			officialState = getState();
 
-			// make a copy for private use
-			(instance || this).state = unserialize(serializedState);
-			
+			// make another copy for private use, if necessary
+			instance.state = getState();
+
 			try {
 
 				// let everyone know the state has changed
@@ -236,8 +234,10 @@ return function (StoreClass) {
 
 		// allows replacing the state with a new state object
 		replaceState = function (newState) {
-			// just wipe the state and merge the new one in
-			serializedState = SERIALIZED_EMPTY_OBJECT;
+			// just wipe the state
+			officialState = null;
+
+			// and merge the new one in
 			setState(newState);
 		},
 
@@ -261,6 +261,16 @@ return function (StoreClass) {
 
 		// internal store, instance of StoreClass
 		instance;
+
+	// create a special class based on the function or object provided
+	StoreClass = createClass(StoreClass, function(self){
+		instance = self;
+	});
+
+	// if a custom getState is provided, remember it here
+	if (StoreClass.prototype.getState) {
+		userGetState = StoreClass.prototype.getState;
+	}
 
 	// add a few "official" instance methods
 	// providing some functionality to the store
