@@ -152,6 +152,17 @@ describe('hoverboard', function () {
 
 			expect(store.getState()).to.equal('bar');
 		});
+
+		it('should execute custom getState on context of instance', function () {
+			var store = __({
+				test: function () {},
+				getState: function (state) {
+					expect(this.test).to.be.a('function');
+				}
+			});
+
+			store.getState();
+		});
 	});
 
 	describe('#state', function () {

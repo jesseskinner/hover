@@ -179,7 +179,7 @@ return function (StoreClass) {
 			// initialize state for the first time if necessary
 			initState();
 			
-			return userGetState(internalState);
+			return userGetState.call(instance, internalState);
 		},
 
 		userGetState = function (state) {
