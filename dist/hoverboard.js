@@ -10,7 +10,7 @@ var REGEX_ACTION_METHOD = (/^on[A-Z]/);
 var NOOP = function(){};
 
 // create the public API with action methods
-function createApi(instance, addStateListener) {
+function createApi(instance, addStateListener, getInternalState) {
 	var api = {}, action, method, actionMethod;
 
 	// create actions on the api
@@ -18,7 +18,7 @@ function createApi(instance, addStateListener) {
 		// if it looks like an action handler, eg. onAction
 		if (REGEX_ACTION_METHOD.test(method)) {
 			// create an action on the api with appropriate action name
-			action = createAction(instance, method);
+			action = createAction(instance, method, getInternalState);
 			actionMethod = getActionMethod(method);
 
 			api[actionMethod] = action;
@@ -40,7 +40,7 @@ function createApi(instance, addStateListener) {
 }
 
 // create an action for the api that calls an action handler method on the instance
-function createAction(instance, method) {
+function createAction(instance, method, getInternalState) {
 	// return a function that'll be attached to the api
 	return function (a,b,c) {
 		// prevent a subsequent action being called during an action
@@ -51,8 +51,8 @@ function createAction(instance, method) {
 		// remember that we're in the middle of an action
 		isActionBeingHandled = 1;
 
-		// create a copy of the state for local use
-		instance.state = instance.getState();
+		// initialize the
+		instance.state = getInternalState();
 
 		try {
 			var len = arguments.length;
@@ -142,7 +142,7 @@ function createClass(originalClass, initSelf) {
 // return the Hoverboard function
 return function (StoreClass) {
 	// keep track of instance state, defaults to empty object
-	var officialState = {},
+	var internalState = {},
 
 		// list of state listeners specific to this store instance
 		stateListeners = [],
@@ -161,9 +161,9 @@ return function (StoreClass) {
 			// use getInitialState if available
 			if (isFunction(instance.getInitialState)) {
 				var state = instance.getInitialState(),
-					currentState = officialState;
+					currentState = internalState;
 
-				officialState = state;
+				internalState = state;
 
 				// if state had changed since getInitialState started
 				// then merge it into the initial state returned
@@ -179,7 +179,7 @@ return function (StoreClass) {
 			// initialize state for the first time if necessary
 			initState();
 			
-			return userGetState(officialState);
+			return userGetState(internalState);
 		},
 
 		userGetState = function (state) {
@@ -199,25 +199,22 @@ return function (StoreClass) {
 			// keep track that state for this store is currently being or has ever changed
 			hasStateBeenChanged = isStateBeingChanged = 1;
 
-			// if officialState and newState are objects, merge in new properties
-			if (isObject(officialState) && isObject(newState)) {
+			// if internalState and newState are objects, merge in new properties
+			if (isObject(internalState) && isObject(newState)) {
 				var key, i;
 
 				// shallow merge
 				for (key in newState) {
-					officialState[key] = newState[key];
+					internalState[key] = newState[key];
 				}
 
 			// otherwise, just use the newState as official state
 			} else {
-				officialState = newState;
+				internalState = newState;
 			}
 
-			// make an internal copy, if necessary
-			officialState = getState();
-
-			// make another copy for private use, if necessary
-			instance.state = getState();
+			// make an internal link for private use, if necessary
+			instance.state = internalState;
 
 			try {
 
@@ -235,7 +232,7 @@ return function (StoreClass) {
 		// allows replacing the state with a new state object
 		replaceState = function (newState) {
 			// just wipe the state
-			officialState = null;
+			internalState = null;
 
 			// and merge the new one in
 			setState(newState);
@@ -257,6 +254,15 @@ return function (StoreClass) {
 					callback = null;
 				}
 			};
+		},
+
+		// returns the current official state. used for actions
+		getInternalState = function () {
+			// initialize the state if necessary
+			initState();
+
+			// return the official state
+			return internalState;
 		},
 
 		// internal store, instance of StoreClass
@@ -282,8 +288,11 @@ return function (StoreClass) {
 	// instantiate the store class
 	instance = new StoreClass();
 
+	// add a state reference to the instance
+	instance.state = internalState;
+
 	// create & expose the api for public use, exposing actions and getState method
-	return createApi(instance, addStateListener);
+	return createApi(instance, addStateListener, getInternalState);
 };
 
 })(); // execute immediately

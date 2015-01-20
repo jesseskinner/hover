@@ -124,6 +124,34 @@ describe('hoverboard', function () {
 
 			expect(store.action).to.throw(Error, /^Hoverboard: Cannot change state during a state change event$/);
 		});
+
+		it('should give return value from custom getState always', function () {
+			var store = __({
+				onAction: function () {
+					expect(this.getState()).to.eql('hello');
+				},
+				getState: function () {
+					return 'hello';
+				}
+			});
+
+			store.action();
+		});
+
+		it('should provide custom getState with internal state', function () {
+			var store = __({
+				getInitialState: function () {
+					return 'foo';
+				},
+				getState: function (state) {
+					expect(state).to.equal('foo');
+
+					return 'bar';
+				}
+			});
+
+			expect(store.getState()).to.equal('bar');
+		});
 	});
 
 	describe('#state', function () {
@@ -147,21 +175,17 @@ describe('hoverboard', function () {
 			store.bar();
 		});
 
-		it('should discard mutations between action handlers with custom getState', function () {
+		it('should not be affected by custom getState method', function () {
 			var store = __({
-				onFoo: function () {
-					this.state.test = true;
+				getState: function () {
+					return 123;
 				},
-				onBar: function () {
-					expect(this.state.test).to.be.undefined();
-				},
-				getState: function(state) {
-					return JSON.parse(JSON.stringify(state));
+				onTest: function () {
+					expect(this.state).not.to.equal(123);
 				}
 			});
-			
-			store.foo();
-			store.bar();
+
+			store.test();
 		});
 	});
 
@@ -290,7 +314,6 @@ describe('hoverboard', function () {
 			};
 
 			var storeA = __(Class),
-				x = console.log(Class.prototype),
 				storeB = __(Class);
 
 			storeA.change(true);
@@ -308,25 +331,6 @@ describe('hoverboard', function () {
 
 				expect(this.state.foo).to.equal(2);
 			});
-			
-		});
-
-		it('should destroy any internal mutation of state if custom setState', function () {
-			var store = __({
-				getInitialState: function () {
-					this.setState({ foo: 1 });
-
-					this.state.foo = 2;
-					
-					this.setState({});
-
-					expect(this.state.foo).to.equal(1);
-				},
-				getState: function(state){
-					return JSON.parse(JSON.stringify(state));
-				}
-			});
-			
 		});
 	});
 

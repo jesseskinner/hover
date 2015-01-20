@@ -158,11 +158,9 @@ actions = Hoverboard(store);
 
 - `store.getState(state)` (optional)
 
-	- Will be passed the current state, and should return the state to be exposed.
+	- Will be passed the current state as a parameter.
 
-	- Will be called any time the state is updated or requested from `api.getState()`.
-
-	- Will also be called to update `this.state` before every action handler.
+	- Will be used to get the state returned by both `api.getState()` and `this.getState()`.
 
 		```javascript
 		actions = Hoverboard({
@@ -195,12 +193,11 @@ actions = Hoverboard(store);
 
 - `this.state` - object property
 
-	- Contains the current state of the store. If a custom `store.getState` is provided,
-	it will be called to set the value of `this.state` before every action.
+	- Contains the current internal state of the store.
 
 	- Be sure to use `this.setState(state)` to save the state and notify state listeners.
 
-	- Note: `this.state` is not available in the function constructor of a `store`. Use `this.getState()` there instead.
+	- Note: `this.state` is not available in the function constructor of a `store`.
 
 		```javascript
 		Hoverboard({
@@ -213,7 +210,7 @@ actions = Hoverboard(store);
 		
 - `this.getState()`
 
-	- Returns the current state object. Similar to accessing `this.state`.
+	- Returns the current public state object. Similar to calling `api.getState()`.
 
 	- If a custom `store.getState()` is provided, it will be called here.
 
@@ -229,9 +226,7 @@ actions = Hoverboard(store);
 
 	- Updates the store's state.
 
-	- If `this.state` and `partialState` are both objects, the properties will be merged.
-
-	- If state is not an object, the store's state will be replaced.
+	- If `this.state` and `partialState` are both objects, the properties will be merged. Otherwise, the store's state will be replaced.
 
 		```javascript
 		Hoverboard({
