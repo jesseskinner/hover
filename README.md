@@ -38,7 +38,7 @@ UserProfileStore.getState(function (state) {
 });
 ```
 
-Worried about your state being mutated? You can easily provide a custom `getState` function that will be called every time `setState` is called, or an action handler is called, to help prevent mutation or enforce immutability.
+Worried about your state being mutated? You can easily provide a custom `getState` function that will help prevent mutation or enforce immutability, or even return an API of getters for your state.
 
 Hoverboard was inspired by other Flux implementations, like [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
 
