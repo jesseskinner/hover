@@ -117,7 +117,7 @@ function createClass(originalClass, initSelf) {
 		initSelf(this);
 		
 		if (constructor) {
-			constructor.apply(this);
+			return constructor.apply(this);
 		}
 	}, original, k, constructor;
 

@@ -42,6 +42,30 @@ describe('hoverboard', function () {
 
 			expect(store.something).to.be.a('function');
 		});
+
+		it('should create actions from a module', function () {
+			var store = __(function(){
+				return {
+					onTest: function(){}
+				};
+			});
+
+			expect(store.test).to.be.a('function');
+		});
+
+		it('should not add anything to the original prototype', function () {
+			var myClass = function(){};
+			var store = __(myClass);
+
+			expect(myClass.prototype).to.be.empty;
+		});
+
+		it('should not add anything to the original object', function () {
+			var obj = {};
+			var store = __(obj);
+
+			expect(obj).to.be.empty;
+		});
 	});
 
 	describe('#getState', function(){
