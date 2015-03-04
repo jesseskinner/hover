@@ -26,6 +26,38 @@ describe('mixin', function () {
 
 			obj.componentDidMount();
 		});
+
+		it('should also work with a state key', function () {
+			var obj = mixin({
+				getState: function (callback) {
+					callback(123);
+				}
+			}, 'key');
+
+			obj.setState = function (state) {
+				expect(state.key).to.equal(123);
+			};
+
+			obj.componentDidMount();
+		});
+
+		it('should not allow a mixin to be reused', function () {
+			var obj = mixin({
+				getState: function () {
+					return function () {};
+				}
+			});
+
+			obj.setState = function () {};
+
+			obj.componentDidMount();
+
+			expect(function () {
+				// second time should throw error
+				obj.componentDidMount();
+
+			}).to.throw('Cannot reuse a Hoverboard mixin.');
+		});
 	});
 
 	describe('componentWillUnmount', function () {
