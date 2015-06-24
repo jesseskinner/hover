@@ -490,6 +490,33 @@ describe('hoverboard', function () {
 			store.update(1);
 		});
 
+		it('should unsubscribe without breaking other listeners', function () {
+			var store = __({
+					onUpdate: function (data) {
+						this.setState({ data: data });
+					}
+				}),
+
+				success = false,
+
+				unsubscribe = store.getState(function (state) {
+					if (state.data === 1) {
+						unsubscribe();
+					}
+				});
+
+			store.getState(function (state) {
+				if (state.data === 1) {
+					success = true;
+				}
+			});
+
+			// trigger an update
+			store.update(1);
+
+			expect(success).to.be.true;
+		});
+
 		it('should prevent actions to be called from listeners', function () {
 			var store = __({
 				onFoo: function () {

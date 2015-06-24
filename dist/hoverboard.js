@@ -188,6 +188,8 @@ return function (StoreClass) {
 
 		// merge a state object into the existing state object
 		setState = function (newState) {
+			var key, i, listeners;
+		
 			// initialize state if necessary
 			initState();
 
@@ -201,8 +203,6 @@ return function (StoreClass) {
 
 			// if internalState and newState are objects, merge in new properties
 			if (isObject(internalState) && isObject(newState)) {
-				var key, i;
-
 				// shallow merge
 				for (key in newState) {
 					internalState[key] = newState[key];
@@ -218,9 +218,12 @@ return function (StoreClass) {
 
 			try {
 
+				// make local copy in case someone unsubscribes during
+				listeners = stateListeners;
+				
 				// let everyone know the state has changed
-				for (i=0;i < stateListeners.length;i++) {
-					stateListeners[i](getState());
+				for (i=0;i < listeners.length;i++) {
+					listeners[i](getState());
 				}
 
 			} finally {
