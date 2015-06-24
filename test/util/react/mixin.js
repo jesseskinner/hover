@@ -1,6 +1,6 @@
 var chai = require('chai');
 var expect = chai.expect;
-var mixin = require('../src/util/mixin');
+var mixin = require('../../../src/util/react/mixin');
 
 describe('mixin', function () {
 	describe('init', function () {
