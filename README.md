@@ -133,14 +133,22 @@ actions = Hoverboard(store);
 	```javascript
 	actions = Hoverboard(function(setState){
 		setState({ year: 1985 });
+
+		return {
+			someAction: function () {
+				return { year: '1985b' };
+			}
+		}
 	});
 	```
 
 	```javascript
-	var StoreClass = function(){};
+	var StoreClass = function (setState) {
+		setState({ year: 2015 });
+	};
 
 	StoreClass.prototype.someAction = function(){
-		return { year: 2015 };
+		return { year: '2015b' };
 	};
 
 	actions = Hoverboard(StoreClass);
@@ -157,52 +165,36 @@ actions = Hoverboard(store);
 			hideItem: function(state, id) {
 				var items = state.items;
 
-				items[id].hidden = true;
+				if (id in items) {
+					items[id].hidden = true;
+				}
 			
 				// return the new state
 				return { items: items };
 			},
 
-			loadItem: function(state, id) {			
-				// can also return a promise or callback function, for async
-				return api.getItem(id).then(function (result) {
-					var items = state.items;
-					items[id] = result;
+			// can use action to trigger async loading of state
+			init: function(state) {
+				return function (setState) {
+					// can use callback for anything
+					setInterval(function () {
+						setState({ time: new Date });
+					}, 1000);
 
-					return { items: items };
+					// use a promise too
+					api.getItems().then(function (result) {
+						setState({ items: result });
 
-				}, function (error) {
-					// put the error in the state
-					return { error: error };
-				});
-			},
-
-			init: function() {
-				return {
-					// return a promise
-					items: api.getItems().catch(function (error) {
-						return { error: error };
-					}),
-
-					// can do nested objects and arrays
-					clock: {
-						// can use callback for anything
-						time: function (callback) {
-							setInterval(function () {
-								callback(new Date);
-							}, 1000);
-						}
-					}
+					}, function (error) {
+						setState({ error: error });
+					});
 				};
 			}
 		});
 
 		actions.init();
 
-		actions.loadItem("abc").then(function () {
-			actions.hideItem("abc");
-		});
-		
+		actions.hideItem("abc");
 		```
 
 #### Return value
@@ -236,8 +228,6 @@ actions = Hoverboard(store);
 
 	- Calls an action handler on the store, passing through any arguments.
 
-	- Only created for action handlers with a name like onAction (matching `/^on[A-Z]/`).
-	
 		```javascript
 		actions = Hoverboard({
 			notification: function(state, message) {
@@ -347,39 +337,29 @@ then you might want to have an items property that contains the list, and an ite
 that contains the item you need. Something like this:
 
 ```javascript
-var ItemStore = Hoverboard({
-	onItems: function (items) {
-		this.setState({ items: items });
-
-		// update item whenever list of items changes
-		this.updateItem();
+var ItemsStore = Hoverboard({
+	items: function (state, items) {
+		// update items whenever list of items changes
+		return { items: items };
 	},
-	onViewById: function (id) {
-		this.setState({ id: id });
 
-		// update item whenever ID changes
-		this.updateItem();
-	},
-	updateItem: function() {
-		var item = null;
+	setFeaturedId: function (state, id) {
+		// using underscore for this example for simplicity
+		var item = _.find(state.items, { id: id });
 
-		if (this.state.id && this.state.items) {
-			// using underscore for this example for simplicity
-			item = _.find(this.state.items, { id: this.state.id });
-		}
-
-		this.setState({ item: item });
+		// update featured item whenever ID changes
+		return { featured: item };
 	}
 });
 
 ItemStore.items([{ id: 123 /* ... */ }]);
 
 // getAll
-var items = ItemStore.getState().items;
+var items = ItemStore().items;
 
 // getById
-ItemStore.viewById(123);
-var item = ItemStore.getState().item;
+ItemStore.setFeaturedId(123);
+var item = ItemStore().featured;
 ```
 
 ---
@@ -470,56 +450,56 @@ Here's how the same example would work with Hoverboard:
 
 ```javascript
 // Keeps track of which country is selected
-var CountryStore = Hoverboard({
-	update: function (state, selectedCountry) {
-		return { country: selectedCountry };
-	}
-}, { country: null });
+var CountryStore = Hoverboard(function (setState) {
+	setState{ country: null });
+
+	return {
+		update: function (state, selectedCountry) {
+			return { country: selectedCountry };
+		}
+	};
+});
 
 // Keeps track of which city is selected
-var CityStore = Hoverboard({
-	init: function (state) {
-		return 
-	},
-
-	update: function (state, selectedCity) {
-		return { city: selectedCity };
-	}
-}, function (callback) {
+var CityStore = Hoverboard(function (setState) {
 	// listen to the CountryStore
 	CountryStore(function (countryState) {
 	    // Select the default city for the new country
 	    if (countryState.country && state.city === null) {
-			callback({
+			setState({
 				city: getDefaultCityForCountry(countryState.country)
 			});
 		}
 	});
 
-	callback({ city: null });
+	setState({ city: null });
+
+	return {
+		update: function (state, selectedCity) {
+			return { city: selectedCity };
+		}
+	};
 });
 
-CityStore.init();
-
 // Keeps track of the base flight price of the selected city
-var FlightPriceStore = Hoverboard(function (callback) {
+var FlightPriceStore = Hoverboard(function (setState) {
 	// called when either country or city change
 	function updatePrice() {
 		var country = CountryStore().country;
 		var city = CityStore().city;
 
 		if (country && city) {
-			callback({
+			setState({
 				price: getFlightPriceStore(country, city)
 			});
 		}
 	}
 
+	setState({ price: null });
+
 	// listen to changes from both the country and city stores
 	CountryStore(updatePrice);
 	CityStore(updatePrice);
-
-	return { price: null };
 });
 
 // When a user changes the selected city, we call an action:
