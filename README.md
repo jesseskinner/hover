@@ -47,29 +47,27 @@ Here's how you might use Hoverboard to keep track of clicks with a ClickCounter.
 
 ```javascript
 var ClickCounter = Hoverboard(function (setState) {
-	setState({
+	// private data
+    var defaultState = {
 		// initial state
 		value: 0,
 		log: []
-	});
+	};
 
+	// set the initial state immediately
+	setState(defaultState);
+
+	// return an actions object
 	return {
 		click: function(state, text) {
-			var log = state.log;
-			
-			log.push(text);
-
 			return {
 				value: state.value + 1,
-				log: log
+				log: state.log.concat(text)
 			};
 		},
 		reset: function() {
-			return {
-				// go back to defaults
-				value: 0,
-				log: []
-			};
+			// go back to defaults
+			return defaultState;
 		}
 	};
 });
@@ -83,7 +81,7 @@ ClickCounter.click('first');
 ClickCounter.click('second');
 
 // re-initialize back to empty state
-ClickCounter.init();
+ClickCounter.reset();
 
 unsubscribe();
 
@@ -309,24 +307,19 @@ getDataFromAPI(function(error, data){
 });
 ```
 
-Another way is to call the API from within your store itself. If you want to
-defer API calls until the last minute, a nice place to do this is from your
-`getInitialState` function, because it will only be called when the first action
-or `getState` call is made.
+Another way is to call the API from within your store itself.
 
 ```javascript
-var Store = Hoverboard({
-	getInitialState: function() {
-		var self = this;
+var Store = Hoverboard(function(setState) {
+	setState({ isLoading: true, data: null, error: null });
 
-		getDataFromAPI(function(error, data){
-			self.setState({ isLoading: false, data: data, error: error });
-		});
-
-		return { isLoading: true, data: null, error: null };
-	}
+	getDataFromAPI(function(error, data){
+		setState({ isLoading: false, data: data, error: error });
+	});
 });
 ```
+
+You could also put the loading code into an action, and only trigger it when you need the data.
 
 ---
 
