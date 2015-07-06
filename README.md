@@ -39,35 +39,45 @@ UserProfileStore(function (props) {
 });
 ```
 
-Worried about your state being mutated? You can easily provide a custom `getState` function that will help prevent mutation or enforce immutability, or even return an API of getters for your state.
-
-Hoverboard was inspired by other Flux implementations, like [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
+Hoverboard was inspired by other Flux implementations, like [Alt](https://github.com/goatslacker/alt), [Reflux](https://github.com/spoike/refluxjs) and [Redux](https://github.com/gaearon/redux). Those libraries are very lightweight, but Hoverboard is practically weightless.
 
 ## Usage
 
 Here's how you might use Hoverboard to keep track of clicks with a ClickCounter.
 
 ```javascript
-var ClickCounter = Hoverboard({
-	click(state, text) => {
-		value: state.value + 1,
-		log: [...state.log, text]
-	},
-	reset() {
-		// go back to defaults
+var ClickCounter = Hoverboard(function (setState) {
+	setState({
+		// initial state
 		value: 0,
 		log: []
-	}
-}, {
-	// initial state
-	value: 0,
-	log: []
+	});
+
+	return {
+		click: function(state, text) {
+			var log = state.log;
+			
+			log.push(text);
+
+			return {
+				value: state.value + 1,
+				log: log
+			};
+		},
+		reset: function() {
+			return {
+				// go back to defaults
+				value: 0,
+				log: []
+			};
+		}
+	};
 });
 
 // listen to changes to the state
-var unsubscribe = ClickCounter(clickState =>
+var unsubscribe = ClickCounter(function (clickState) {
 	document.write(JSON.stringify(clickState) + "<br>");
-);
+});
 
 ClickCounter.click('first');
 ClickCounter.click('second');
@@ -121,8 +131,8 @@ actions = Hoverboard(store);
 	```
 
 	```javascript
-	actions = Hoverboard(function(){
-		return { year: 1985 };
+	actions = Hoverboard(function(setState){
+		setState({ year: 1985 });
 	});
 	```
 
@@ -246,7 +256,7 @@ actions = Hoverboard(store);
 Yes. Flux requires that data flows in one direction, and Hoverboard enforces that.
 
 When you call an action on a store, you can't get back a return value. The only way to get
-data out of a store is by calling `getState`. So this ensures that data flows following
+data out of a store is by registering a change listener. So this ensures that data flows following
 the `Action -> Dispatcher -> Store -> View` flow that is central to Flux.
 
 ---
@@ -268,7 +278,7 @@ to using React in your projects.
 
 ---
 
-*Q: Is Hoverboard isomorphic? Can I use it on a node.js server?*
+*Q: Is Hoverboard universal? Can I use it on a node.js server?*
 
 Yes, it can work on the server. You can add listeners to stores, and render the
 page once you have everything you need from the stores. You should probably unsubscribe
@@ -283,14 +293,14 @@ actions to pass in the loading state, data and/or error as it arrives:
 
 ```javascript
 var Store = Hoverboard({
-	onLoading: function(isLoading) {
-		this.setState({ isLoading: isLoading });
+	loading: function(state, isLoading) {
+		return { isLoading: isLoading };
 	},
-	onData: function(data) {
-		this.setState({ data: data });
+	data: function(state, data) {
+		return { data: data };
 	},
-	onError: function(error) {
-		this.setState({ error: error });
+	error: function(state, error) {
+		return { error: error };
 	}
 });
 
