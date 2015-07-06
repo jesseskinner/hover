@@ -444,7 +444,7 @@ Here's how the same example would work with Hoverboard:
 ```javascript
 // Keeps track of which country is selected
 var CountryStore = Hoverboard(function (setState) {
-	setState{ country: null });
+	setState({ country: null });
 
 	return {
 		update: function (state, selectedCountry) {
@@ -455,17 +455,17 @@ var CountryStore = Hoverboard(function (setState) {
 
 // Keeps track of which city is selected
 var CityStore = Hoverboard(function (setState) {
+	setState({ city: null });
+
 	// listen to the CountryStore
 	CountryStore(function (countryState) {
 	    // Select the default city for the new country
-	    if (countryState.country && state.city === null) {
+	    if (countryState.country) {
 			setState({
 				city: getDefaultCityForCountry(countryState.country)
 			});
 		}
 	});
-
-	setState({ city: null });
 
 	return {
 		update: function (state, selectedCity) {
