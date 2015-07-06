@@ -3,44 +3,34 @@ var Hoverboard = (function(){
 
 // ensure only one action is handled at a time globally
 var isActionBeingHandled = 0;
-
-// constants
-var REGEX_ACTION_METHOD = (/^on[A-Z]/);
-
-var NOOP = function(){};
+var slice = [].slice;
 
 // create the public API with action methods
-function createApi(instance, addStateListener, getInternalState) {
-	var api = {}, action, method, actionMethod;
+function createApi(instance, addStateListener, getState, setState) {
+	var method;
 
-	// create actions on the api
-	for (method in instance) {
-		// if it looks like an action handler, eg. onAction
-		if (REGEX_ACTION_METHOD.test(method)) {
-			// create an action on the api with appropriate action name
-			action = createAction(instance, method, getInternalState);
-			actionMethod = getActionMethod(method);
-
-			api[actionMethod] = action;
-		}
-	}
-
-	// add a single public method for getting state (one time or with a listener)
-	api.getState = function (callback) {
+	// return a single public method for getting state (one time or with a listener)
+	var api = function (callback) {
 		if (isFunction(callback)) {
 			// return an unsubscribe function if callback is provided
 			return addStateListener(callback);
 		}
 
 		// return the state if no callback provided
-		return instance.getState();
+		return getState();
 	};
+
+	// create actions on the api
+	for (method in instance) {
+		// create an action on the api with appropriate action name
+		api[method] = createAction(instance, method, getState, setState);
+	}
 
 	return api;
 }
 
 // create an action for the api that calls an action handler method on the instance
-function createAction(instance, method, getInternalState) {
+function createAction(instance, method, getState, setState) {
 	// return a function that'll be attached to the api
 	return function (a,b,c) {
 		// prevent a subsequent action being called during an action
@@ -52,25 +42,32 @@ function createAction(instance, method, getInternalState) {
 		isActionBeingHandled = 1;
 
 		// initialize the
-		instance.state = getInternalState();
+		var state = getState(),
+			len, result, args;
 
 		try {
-			var len = arguments.length;
+			len = arguments.length;
 
 			// actually call the action directly. try to avoid using apply for common cases
 			if (len === 0) {
-				instance[method]();
+				result = instance[method](state);
 			} else if (len === 1) {
-				instance[method](a);
+				result = instance[method](state, a);
 			} else if (len === 2) {
-				instance[method](a, b);
+				result = instance[method](state, a, b);
 			} else if (len === 3) {
-				instance[method](a, b, c);
+				result = instance[method](state, a, b, c);
 			} else {
 				// four or more arguments, just use apply
-				instance[method].apply(instance, arguments);
+				args = [state].concat(slice.call(arguments, 0));
+				result = instance[method].apply(instance, args);
 			}
 
+			if (isFunction(result)) {
+				result(setState);
+			} else if (result) {
+				setState(result);
+			}
 		} finally {
 			// whether or not there was an error, we're done here
 			isActionBeingHandled = 0;
@@ -106,20 +103,15 @@ function isObject(obj) {
 	);
 }
 
-// convert an action handler like "onSomeAction" to an action method like "someAction"
-function getActionMethod(method) {
-	return method.charAt(2).toLowerCase() + method.substring(3);
-}
-
 // create a class using an object as a prototype
-function createClass(originalClass, initSelf) {
-	var newClass = function(){
+function createClass(originalClass, setState, initSelf) {
+	var constructor, newClass = function(){
 		initSelf(this);
 		
 		if (constructor) {
-			return constructor.apply(this);
+			return constructor.apply(this, [setState]);
 		}
-	}, original, k, constructor;
+	}, original, k;
 
 	// if a "class" is provided, use the prototype as the object
 	if (isFunction(originalClass)) {
@@ -150,56 +142,17 @@ return function (StoreClass) {
 		// used to provide better error message with circular state listening/changing
 		isStateBeingChanged = 0,
 
-		// keep track of whether state has ever changed, for initState
-		hasStateBeenChanged = 0,
-
-		// initialize the state the first time we need it
-		initState = function () {
-			// do not allow initState to be called again
-			initState = NOOP;
-
-			// use getInitialState if available
-			if (isFunction(instance.getInitialState)) {
-				var state = instance.getInitialState(),
-					currentState = internalState;
-
-				internalState = state;
-
-				// if state had changed since getInitialState started
-				// then merge it into the initial state returned
-				// this allows setState to be called from getInitialState
-				if (hasStateBeenChanged) {
-					setState(currentState);
-				}
-			}
-		},
-		
-		// return a fresh copy of the state
-		getState = function () {
-			// initialize state for the first time if necessary
-			initState();
-			
-			return userGetState.call(instance, internalState);
-		},
-
-		userGetState = function (state) {
-			return state;
-		},
-
 		// merge a state object into the existing state object
 		setState = function (newState) {
 			var key, i, listeners;
 		
-			// initialize state if necessary
-			initState();
-
 			// if the state for this store is already being changed, throw an error
 			if (isStateBeingChanged) {
 				throw new Error('Hoverboard: Cannot change state during a state change event');
 			}
 
 			// keep track that state for this store is currently being or has ever changed
-			hasStateBeenChanged = isStateBeingChanged = 1;
+			isStateBeingChanged = 1;
 
 			// if internalState and newState are objects, merge in new properties
 			if (isObject(internalState) && isObject(newState)) {
@@ -212,9 +165,6 @@ return function (StoreClass) {
 			} else {
 				internalState = newState;
 			}
-
-			// make an internal link for private use, if necessary
-			instance.state = internalState;
 
 			try {
 
@@ -230,15 +180,6 @@ return function (StoreClass) {
 				// all done changing the state, even if there was an error
 				isStateBeingChanged = 0;
 			}
-		},
-
-		// allows replacing the state with a new state object
-		replaceState = function (newState) {
-			// just wipe the state
-			internalState = null;
-
-			// and merge the new one in
-			setState(newState);
 		},
 
 		// add a state change listener
@@ -260,10 +201,7 @@ return function (StoreClass) {
 		},
 
 		// returns the current official state. used for actions
-		getInternalState = function () {
-			// initialize the state if necessary
-			initState();
-
+		getState = function () {
 			// return the official state
 			return internalState;
 		},
@@ -272,30 +210,15 @@ return function (StoreClass) {
 		instance;
 
 	// create a special class based on the function or object provided
-	StoreClass = createClass(StoreClass, function(self){
+	StoreClass = createClass(StoreClass, setState, function(self){
 		instance = self;
 	});
 
-	// if a custom getState is provided, remember it here
-	if (StoreClass.prototype.getState) {
-		userGetState = StoreClass.prototype.getState;
-	}
-
-	// add a few "official" instance methods
-	// providing some functionality to the store
-	// Note: this will replace any methods with the same name in StoreClass
-	StoreClass.prototype.getState = getState;
-	StoreClass.prototype.setState = setState;
-	StoreClass.prototype.replaceState = replaceState;
-
-	// instantiate the store class
+	// instantiate the store class, passing in setState
 	instance = new StoreClass();
 
-	// add a state reference to the instance
-	instance.state = internalState;
-
 	// create & expose the api for public use, exposing actions and getState method
-	return createApi(instance, addStateListener, getInternalState);
+	return createApi(instance, addStateListener, getState, setState);
 };
 
 })(); // execute immediately

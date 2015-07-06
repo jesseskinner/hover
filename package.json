@@ -14,7 +14,7 @@
     "globalify-mixin": "sed 's/module.exports/var HoverboardMixin/' src/util/react/mixin.js > dist/util/react/mixin.js",
     "globalify": "npm run globalify-hoverboard && npm run globalify-mixin",
     "build": "npm test && npm run globalify && npm run minify",
-    "watch": "mocha -wGR --recursive nyan",
+    "watch": "mocha --recursive -wGR nyan",
     "test-travis": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
     "test": "mocha --recursive"
   },
@@ -33,7 +33,9 @@
     "url": "https://github.com/jesseskinner/hoverboard/issues"
   },
   "homepage": "https://github.com/jesseskinner/hoverboard",
-  "dependencies": {},
+  "dependencies": {
+    "solve": "^1.2.0"
+  },
   "devDependencies": {
     "chai": "^1.10.0",
     "coveralls": "^2.11.2",

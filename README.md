@@ -26,15 +26,16 @@ bower install hoverboard-flux
 
 Hoverboard greatly simplifies [Flux](https://facebook.github.io/flux/) while staying true to the concept.
 
-Hoverboard() takes a store definition, and returns actions automatically. Hoverboard will create actions for all the action handlers you define. What's an action handler? It's a function that starts with the letters "on" followed by an upper case letter (in regexp speak, `/^on[A-Z]/`). For example, if you have `onSomeAction()`, Hoverboard will automatically create an action called `someAction()`. Any other methods are kept private and won't be exposed to the public, so you can sleep with ease.
+Hoverboard() takes a store definition, and returns actions automatically. Hoverboard will create actions for all the action handlers you define.
 
-Hoverboard also makes it incredibly easy to watch the state of a store. You just call getState, pass in a function, and it'll be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state. Now you can finally ditch those "Controller-Views".
+Hoverboard also makes it incredibly easy to watch the state of a store. You can add a listener by calling the model as a function. Your callback will be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state. Now you can finally ditch those "Controller-Views".
 
 ```javascript
-UserProfileStore.getState(function (state) {
-	var element = React.createElement(UserProfile, state);
-
-	React.render(element, document.body);
+UserProfileStore(function (props) {
+	React.render(
+		<UserProfile ...props />,
+		document.getElementById('user-profile')
+	);
 });
 ```
 
@@ -44,40 +45,35 @@ Hoverboard was inspired by other Flux implementations, like [Alt](https://github
 
 ## Usage
 
-The following example uses pretty much all of Hoverboard's functionality.
+Here's how you might use Hoverboard to keep track of clicks with a ClickCounter.
 
 ```javascript
 var ClickCounter = Hoverboard({
-	getInitialState: function () {
-		return {
-			value: 0,
-			log: []
-		};
+	click(state, text) => {
+		value: state.value + 1,
+		log: [...state.log, text]
 	},
-	getState: function (state) {
-		// add protection from mutation by making a copy
-		return JSON.parse(JSON.stringify(state));
-	},
-	onClick: function (text) {
-		this.state.value++;
-		this.state.log.push(text);
-
-		// need to call setState to make it permanent & notify listeners
-		this.setState(this.state);
-	},
-	onReset: function () {
-		this.replaceState(this.getInitialState());
+	reset() {
+		// go back to defaults
+		value: 0,
+		log: []
 	}
+}, {
+	// initial state
+	value: 0,
+	log: []
 });
 
 // listen to changes to the state
-var unsubscribe = ClickCounter.getState(function(clickState){
+var unsubscribe = ClickCounter(clickState =>
 	document.write(JSON.stringify(clickState) + "<br>");
-});
+);
 
 ClickCounter.click('first');
 ClickCounter.click('second');
-ClickCounter.reset();
+
+// re-initialize back to empty state
+ClickCounter.init();
 
 unsubscribe();
 
@@ -118,23 +114,23 @@ actions = Hoverboard(store);
 
 	```javascript
 	actions = Hoverboard({
-		onSomeAction: function(){
-			this.setState({ year: 1955 });
+		someAction: function(){
+			return { year: 1955 };
 		}
 	});
 	```
 
 	```javascript
 	actions = Hoverboard(function(){
-		this.setState({ year: 1985 });
+		return { year: 1985 };
 	});
 	```
 
 	```javascript
 	var StoreClass = function(){};
 
-	StoreClass.prototype.onSomeAction = function(){
-		this.setState({ year: 2015 });
+	StoreClass.prototype.someAction = function(){
+		return { year: 2015 };
 	};
 
 	actions = Hoverboard(StoreClass);
@@ -142,122 +138,61 @@ actions = Hoverboard(store);
 
 ##### `store` - user defined properties
 
-- `store.getInitialState` (optional)
+- `store.action` (optional)
 
-	- Should return the initial state for the store.
-
-	- Will not be called until `getState` is called, or an action is handled. So it can be a good place to start loading data from an API.
+	- Any methods will be exposed as actions in the returned `actions` object.
 
 		```javascript
 		actions = Hoverboard({
-			getInitialState: function(){
-				return { list: [] };
+			hideItem: function(state, id) {
+				var items = state.items;
+
+				items[id].hidden = true;
+			
+				// return the new state
+				return { items: items };
+			},
+
+			loadItem: function(state, id) {			
+				// can also return a promise or callback function, for async
+				return api.getItem(id).then(function (result) {
+					var items = state.items;
+					items[id] = result;
+
+					return { items: items };
+
+				}, function (error) {
+					// put the error in the state
+					return { error: error };
+				});
+			},
+
+			init: function() {
+				return {
+					// return a promise
+					items: api.getItems().catch(function (error) {
+						return { error: error };
+					}),
+
+					// can do nested objects and arrays
+					clock: {
+						// can use callback for anything
+						time: function (callback) {
+							setInterval(function () {
+								callback(new Date);
+							}, 1000);
+						}
+					}
+				};
 			}
 		});
-		```
 
-- `store.getState(state)` (optional)
+		actions.init();
 
-	- Will be passed the current state as a parameter.
-
-	- Will be used to get the state returned by both `api.getState()` and `this.getState()`.
-
-		```javascript
-		actions = Hoverboard({
-			getState: function (state) {
-				// use serialization to prevent mutation
-				return JSON.parse(JSON.stringify(state));
-			}
+		actions.loadItem("abc").then(function () {
+			actions.hideItem("abc");
 		});
-		```
-
-- `store.onHandleSomeAction` (optional)
-
-	- Any methods with a name like `onFooBar()` (matching `/^on[A-Z]/`) are action handlers, and will be exposed as actions in the returned `actions` object. So `onaction()` will **not** be turned into an action, but `onAction()` will.
-
-	- Specifically, the action names will not have the "on" at the start, and the first character will be lower-case. So `onFooBar()` will be accessible as `fooBar()`.
-
-	- Note: actions cannot be called from other actions, even actions in different stores.
-
-		```javascript
-		actions = Hoverboard({
-			onAddItem: function(text){
-				// add item to database
-			}
-		});
-
-		actions.addItem("abc");
-		```
-
-##### `store` internal methods and properties
-
-- `this.state` - object property
-
-	- Contains the current internal state of the store.
-
-	- Be sure to use `this.setState(state)` to save the state and notify state listeners.
-
-	- Note: `this.state` is not available in the function constructor of a `store`.
-
-		```javascript
-		Hoverboard({
-			onSomeAction: function(){
-				this.state.newValue = 123;
-				this.setState(this.state);
-			}
-		});
-		```
 		
-- `this.getState()`
-
-	- Returns the current public state object. Similar to calling `api.getState()`.
-
-	- If a custom `store.getState()` is provided, it will be called here.
-
-		```javascript
-		Hoverboard(function(){
-			var state = this.getState();
-			state.newValue = 123;
-			this.setState(state);
-		});
-		```
-
-- `this.setState(partialState)`
-
-	- Updates the store's state.
-
-	- If `this.state` and `partialState` are both objects, the properties will be merged. Otherwise, the store's state will be replaced.
-
-		```javascript
-		Hoverboard({
-			getInitialState: function(){
-				return { sky: 'blue' };
-			},
-			onSomeAction: function(){
-				this.setState({ grass: 'green' });
-
-				// this.state is now: { sky: 'blue', grass: 'green' }
-			}
-		});
-		```
-
-- `this.replaceState(newState)`
-
-	- Replaces the store's state with `newState` object.
-
-	- Similar to `setState` except it always erases the previous state before updating.
-
-		```javascript
-		Hoverboard({
-			getInitialState: function(){
-				return { sky: 'blue' };
-			},
-			onSomeAction: function(){
-				this.replaceState({ grass: 'green' });
-
-				// this.state is now: { grass: 'green' }
-			}
-		});
 		```
 
 #### Return value
@@ -266,17 +201,11 @@ actions = Hoverboard(store);
 
 ##### `actions` object methods
 
-- `actions.getState()`
+- `actions()`
 
 	- Returns the store's current state.
 
-	- If a custom `store.getState()` is provided, it will be called here.
-
-		```javascript
-		state = actions.getState();
-		```
-
-- `unsubscribe = actions.getState(function(state) {})`
+- `unsubscribe = actions(function(state) { /* do stuff */ })`
 
 	- Adds a listener to the state of a store.
 	
@@ -285,7 +214,7 @@ actions = Hoverboard(store);
     - Returns an unsubscribe function. Call it to stop listening to the state.
 
 		```javascript
-		unsubscribe = actions.getState(function(state) {
+		unsubscribe = actions(function(state) {
 			alert(state.value);
 		});
         
@@ -301,7 +230,7 @@ actions = Hoverboard(store);
 	
 		```javascript
 		actions = Hoverboard({
-			onNotification: function(message) {
+			notification: function(state, message) {
 				alert(message); // 123
 			}
 		});
@@ -532,59 +461,55 @@ Here's how the same example would work with Hoverboard:
 ```javascript
 // Keeps track of which country is selected
 var CountryStore = Hoverboard({
-	getInitialState: function () {
-		return { country: null };
-	},
-	onUpdate: function (selectedCountry) {
-		this.setState({ country: selectedCountry });
+	update: function (state, selectedCountry) {
+		return { country: selectedCountry };
 	}
-});
+}, { country: null });
 
 // Keeps track of which city is selected
 var CityStore = Hoverboard({
-	getInitialState: function () {
-		var self = this;
-
-		// listen to changes from the CountryStore
-		CountryStore.getState(function (state) {
-		    // Select the default city for the new country
-		    if (state.country) {
-				self.setState({
-					city: getDefaultCityForCountry(state.country)
-				});
-			}
-		});
-
-		return { city: null };
+	init: function (state) {
+		return 
 	},
-	onUpdate: function (selectedCity) {
-		this.setState({ city: selectedCity });
+
+	update: function (state, selectedCity) {
+		return { city: selectedCity };
 	}
+}, function (callback) {
+	// listen to the CountryStore
+	CountryStore(function (countryState) {
+	    // Select the default city for the new country
+	    if (countryState.country && state.city === null) {
+			callback({
+				city: getDefaultCityForCountry(countryState.country)
+			});
+		}
+	});
+
+	callback({ city: null });
 });
 
+CityStore.init();
+
 // Keeps track of the base flight price of the selected city
-var FlightPriceStore = Hoverboard({
-	getInitialState: function(){
-		var self = this;
+var FlightPriceStore = Hoverboard(function (callback) {
+	// called when either country or city change
+	function updatePrice() {
+		var country = CountryStore().country;
+		var city = CityStore().city;
 
-		// called when either country or city change
-		function updatePrice() {
-			var country = CountryStore.getState().country;
-			var city = CityStore.getState().city;
-
-			if (country && city) {
-				self.setState({
-					price: getFlightPriceStore(country, city)
-				});
-			}
+		if (country && city) {
+			callback({
+				price: getFlightPriceStore(country, city)
+			});
 		}
+	}
 
-		// listen to changes from both the country and city stores
-		CountryStore.getState(updatePrice);
-		CityStore.getState(updatePrice);
+	// listen to changes from both the country and city stores
+	CountryStore(updatePrice);
+	CityStore(updatePrice);
 
-		return { price: null };
-	} 
+	return { price: null };
 });
 
 // When a user changes the selected city, we call an action:
