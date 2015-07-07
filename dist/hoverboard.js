@@ -1,79 +1,7 @@
 var Hoverboard = (function(){
 'use strict';
 
-// ensure only one action is handled at a time globally
-var isActionBeingHandled = 0;
 var slice = [].slice;
-
-// create the public API with action methods
-function createApi(instance, addStateListener, getState, setState) {
-	var method;
-
-	// return a single public method for getting state (one time or with a listener)
-	var api = function (callback) {
-		if (isFunction(callback)) {
-			// return an unsubscribe function if callback is provided
-			return addStateListener(callback);
-		}
-
-		// return the state if no callback provided
-		return getState();
-	};
-
-	// create actions on the api
-	for (method in instance) {
-		// create an action on the api with appropriate action name
-		api[method] = createAction(instance, method, getState, setState);
-	}
-
-	return api;
-}
-
-// create an action for the api that calls an action handler method on the instance
-function createAction(instance, method, getState, setState) {
-	// return a function that'll be attached to the api
-	return function (a,b,c) {
-		// prevent a subsequent action being called during an action
-		if (isActionBeingHandled) {
-			throw new Error('Hoverboard: Cannot call action in the middle of an action');
-		}
-
-		// remember that we're in the middle of an action
-		isActionBeingHandled = 1;
-
-		// initialize the
-		var state = getState(),
-			len, result, args;
-
-		try {
-			len = arguments.length;
-
-			// actually call the action directly. try to avoid using apply for common cases
-			if (len === 0) {
-				result = instance[method](state);
-			} else if (len === 1) {
-				result = instance[method](state, a);
-			} else if (len === 2) {
-				result = instance[method](state, a, b);
-			} else if (len === 3) {
-				result = instance[method](state, a, b, c);
-			} else {
-				// four or more arguments, just use apply
-				args = [state].concat(slice.call(arguments, 0));
-				result = instance[method].apply(instance, args);
-			}
-
-			if (isFunction(result)) {
-				result(setState);
-			} else if (result) {
-				setState(result);
-			}
-		} finally {
-			// whether or not there was an error, we're done here
-			isActionBeingHandled = 0;
-		}
-	};
-}
 
 // remove a callback from a list of state change listeners
 function removeListener(listeners, callback) {
@@ -138,6 +66,9 @@ return function (StoreClass) {
 
 		// list of state listeners specific to this store instance
 		stateListeners = [],
+
+		// ensure only one action is handled at a time globally
+		isActionBeingHandled = 0,
 
 		// used to provide better error message with circular state listening/changing
 		isStateBeingChanged = 0,
@@ -206,6 +137,66 @@ return function (StoreClass) {
 			return internalState;
 		},
 
+		// create an action for the api that calls an action handler method on the instance
+		createAction = function (method) {
+			// return a function that'll be attached to the api
+			return function (a,b,c) {
+				// prevent a subsequent action being called during an action
+				if (isActionBeingHandled) {
+					throw new Error('Hoverboard: Cannot call action in the middle of an action');
+				}
+
+				// remember that we're in the middle of an action
+				isActionBeingHandled = 1;
+
+				// initialize the
+				var state = getState(),
+					len = arguments.length,
+					result, args, undefined;
+
+				try {
+					// actually call the action directly. try to avoid using apply for common cases
+					if (len === 0) {
+						result = instance[method](state);
+					} else if (len === 1) {
+						result = instance[method](state, a);
+					} else if (len === 2) {
+						result = instance[method](state, a, b);
+					} else if (len === 3) {
+						result = instance[method](state, a, b, c);
+					} else {
+						// four or more arguments, just use apply
+						args = [state].concat(slice.call(arguments, 0));
+						result = instance[method].apply(instance, args);
+					}
+
+					if (isFunction(result)) {
+						result(setState);
+
+					// only set the state if it's not undefined
+					} else if (result !== undefined) {
+						setState(result);
+					}
+				} finally {
+					// whether or not there was an error, we're done here
+					isActionBeingHandled = 0;
+				}
+			};
+		},
+
+		// return a single public method for getting state (one time or with a listener)
+		api = function (callback) {
+			if (isFunction(callback)) {
+				// return an unsubscribe function if callback is provided
+				return addStateListener(callback);
+			}
+
+			// return the state if no callback provided
+			return getState();
+		},
+
+		method,
+
 		// internal store, instance of StoreClass
 		instance;
 
@@ -217,8 +208,14 @@ return function (StoreClass) {
 	// instantiate the store class, passing in setState
 	instance = new StoreClass();
 
+	// create actions on the api
+	for (method in instance) {
+		// create an action on the api with appropriate action name
+		api[method] = createAction(method);
+	}
+
 	// create & expose the api for public use, exposing actions and getState method
-	return createApi(instance, addStateListener, getState, setState);
+	return api;
 };
 
 })(); // execute immediately
