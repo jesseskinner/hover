@@ -33,9 +33,6 @@
     "url": "https://github.com/jesseskinner/hoverboard/issues"
   },
   "homepage": "https://github.com/jesseskinner/hoverboard",
-  "dependencies": {
-    "solve": "^1.2.0"
-  },
   "devDependencies": {
     "chai": "^1.10.0",
     "coveralls": "^2.11.2",
