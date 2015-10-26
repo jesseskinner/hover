@@ -29,10 +29,16 @@ Hoverboard greatly simplifies [Flux](https://facebook.github.io/flux/) while sta
 The basic usage of Hoverboard is:
 
 ```javascript
-var store = Hoverboard(actions);
+var store = Hoverboard({
+	action: function (state, value) {
+		return { value: value };
+	}
+});
+
+store.action("Hello, World!");
 ```
 
-Hoverboard makes it incredibly easy to subscribe to state changes. You can add a listener by calling the model as a function. Your callback will be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state. You can keep your components stateless, and ditch those "Controller-Views".
+Hoverboard makes it incredibly easy to subscribe to state changes. You can add a listener by calling the model as a function. Your callback will be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state.
 
 ```javascript
 store.getState(function (props) {
@@ -43,8 +49,7 @@ store.getState(function (props) {
 });
 ```
 
-Worried about your state being mutated? Hoverboard will always create a copy of your state using
-a shallow merge before passing to your store's subscribers or action reducers.
+Worried about your state being mutated? If your state is an object, Hoverboard will always create a copy of your state using a shallow merge before passing to your store's subscribers or actions.
 
 Hoverboard was inspired by other Flux implementations, like [Redux](https://github.com/reakt/redux), [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
 
@@ -110,10 +115,11 @@ Hoverboard is a function that takes a store as a single parameter, either an obj
 store = Hoverboard(actions);
 ```
 
-#### `actions` parameter
+#### `actions` object
 
 - Any properties of the actions object will be exposed as methods on the returned `store` object.
-- Note that the actions will receive `state` as the first parameter, but the methods do not.
+- Note that your actions will automatically receive `state` as the first parameter, followed
+by the arguments you pass in when calling it.
 
 	```javascript
 	actions = Hoverboard({
@@ -182,15 +188,9 @@ store = Hoverboard(actions);
 		```javascript
 		store = Hoverboard({
 			add: function(state, number) {
-				return state + number;
-			},
-			reset: function() {
-				return 0;
+				return (state || 0) + number;
 			}
 		});
-
-		// start off at zero
-		store.reset();
 
 		store.add(5);
 		store.add(4);
@@ -234,16 +234,16 @@ Yes, it can work on the server. You can add listeners to stores, and render the
 page once you have everything you need from the stores. To be safe, you should probably unsubscribe from the store listeners once you've rendered the page, so you don't render it twice.
 
 If you want to be able to "re-hydrate" your stores after rendering on the server, you can
-add a simple action to do so like the following:
+add a simple init action to do so like the following:
 
 ```javascript
 store = Hoverboard({
-	rehydrate: function (state, newState) {
-		return newState;
+	init: function (state, initialState) {
+		return initialState;
 	}
 });
 
-store.rehydrate(storeData);
+store.init(storeData);
 ```
 
 ---
