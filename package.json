@@ -35,11 +35,11 @@
   "homepage": "https://github.com/jesseskinner/hoverboard",
   "dependencies": {},
   "devDependencies": {
-    "chai": "^1.10.0",
+    "chai": "^3.4.0",
     "coveralls": "^2.11.4",
-    "istanbul": "^0.3.22",
+    "istanbul": "^0.4.0",
     "mocha": "^2.3.3",
-    "mocha-lcov-reporter": "0.0.1",
+    "mocha-lcov-reporter": "^1.0.0",
     "uglify-js": "^2.5.0"
   }
 }
