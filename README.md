@@ -35,7 +35,7 @@ var store = Hoverboard(actions);
 Hoverboard makes it incredibly easy to subscribe to state changes. You can add a listener by calling the model as a function. Your callback will be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state. You can keep your components stateless, and ditch those "Controller-Views".
 
 ```javascript
-store.subscribe(function (props) {
+store.getState(function (props) {
 	React.render(
 		<UserProfile {...props} actions={actions} />,
 		document.getElementById('user-profile')
@@ -158,7 +158,7 @@ store = Hoverboard(actions);
 
 	- Returns the store's current state.
 
-- `unsubscribe = store.subscribe(function)` or `unsubscribe = store(function)`
+- `unsubscribe = store.getState(function)` or `unsubscribe = store(function)`
 
 	- Adds a listener to the state of a store.
 	
@@ -167,7 +167,7 @@ store = Hoverboard(actions);
     - Returns an unsubscribe function. Call it to stop listening to the state.
 
 		```javascript
-		unsubscribe = store.subscribe(function(state) {
+		unsubscribe = store.getState(function(state) {
 			alert(state.value);
 		});
         

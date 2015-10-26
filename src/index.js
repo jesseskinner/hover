@@ -110,7 +110,7 @@ return function (actions) {
 		},
 
 		// add a state change listener
-		subscribe = function (callback){
+		subscribe = function (callback) {
 			// add callback as listener to change event
 			stateListeners.push(callback);
 
@@ -161,7 +161,6 @@ return function (actions) {
 
 	// expose these as explicit api on the getState function
 	getState.getState = getState;
-	getState.subscribe = subscribe;
 
 	// create actions on the getState api as well
 	for (method in actions) {
