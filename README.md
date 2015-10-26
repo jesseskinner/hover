@@ -29,7 +29,7 @@ Hoverboard greatly simplifies [Flux](https://facebook.github.io/flux/) while sta
 The basic usage of Hoverboard is:
 
 ```javascript
-var actions = Hoverboard(store);
+var store = Hoverboard(actions);
 ```
 
 Hoverboard makes it incredibly easy to subscribe to state changes. You can add a listener by calling the model as a function. Your callback will be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state. You can keep your components stateless, and ditch those "Controller-Views".
@@ -234,7 +234,7 @@ Yes, it can work on the server. You can add listeners to stores, and render the
 page once you have everything you need from the stores. To be safe, you should probably unsubscribe from the store listeners once you've rendered the page, so you don't render it twice.
 
 If you want to be able to "re-hydrate" your stores after rendering on the server, you can
-add an action to do so like the following:
+add a simple action to do so like the following:
 
 ```javascript
 store = Hoverboard({
@@ -308,7 +308,7 @@ then you might want to have an items property that contains the list, and an ite
 that contains the item you need. Something like this:
 
 ```javascript
-var ItemStore = Hoverboard({
+var itemStore = Hoverboard({
 	init: function (state, data) {
 		return data;
 	},
@@ -327,15 +327,15 @@ var ItemStore = Hoverboard({
 });
 
 // initalize with data
-ItemStore.init({ abc: 123, /* etc... */ });
+itemStore.init({ abc: 123, /* etc... */ });
 
 // getAll
-var items = ItemStore().items;
+var items = itemStore().items;
 
 // getById
-ItemStore.viewById(123);
+itemStore.viewById(123);
 
-var state = ItemStore.getState();
+var state = itemStore.getState();
 
 if (state.item) {
 	// render single item
@@ -361,74 +361,7 @@ a change. Whenever one store changes, the other can update itself immediately.
 How would you avoid using `waitFor` in Hoverboard? Let's compare using an example from the
 [Facebook Flux Dispatcher tutorial](http://facebook.github.io/flux/docs/dispatcher.html):
 
-```javascript
-var flightDispatcher = new Dispatcher();
-
-// Keeps track of which country is selected
-var CountryStore = {country: null};
-
-// Keeps track of which city is selected
-var CityStore = {city: null};
-
-// Keeps track of the base flight price of the selected city
-var FlightPriceStore = {price: null};
-
-// When a user changes the selected city, we dispatch the payload:
-flightDispatcher.dispatch({
-  actionType: 'city-update',
-  selectedCity: 'paris'
-});
-
-// This payload is digested by CityStore:
-flightDispatcher.register(function(payload) {
-  if (payload.actionType === 'city-update') {
-    CityStore.city = payload.selectedCity;
-  }
-});
-
-// When the user selects a country, we dispatch the payload:
-flightDispatcher.dispatch({
-  actionType: 'country-update',
-  selectedCountry: 'australia'
-});
-
-// This payload is digested by both stores:
-CountryStore.dispatchToken = flightDispatcher.register(function(payload) {
-  if (payload.actionType === 'country-update') {
-    CountryStore.country = payload.selectedCountry;
-  }
-});
-
-// When the callback to update CountryStore is registered, we save a
-// reference to the returned token. Using this token with waitFor(),
-// we can guarantee that CountryStore is updated before the callback
-// that updates CityStore needs to query its data.
-CityStore.dispatchToken = flightDispatcher.register(function(payload) {
-  if (payload.actionType === 'country-update') {
-    // `CountryStore.country` may not be updated.
-    flightDispatcher.waitFor([CountryStore.dispatchToken]);
-    // `CountryStore.country` is now guaranteed to be updated.
-
-    // Select the default city for the new country
-    CityStore.city = getDefaultCityForCountry(CountryStore.country);
-  }
-});
-
-// The usage of waitFor() can be chained, for example:
-FlightPriceStore.dispatchToken =
-  flightDispatcher.register(function(payload) {
-    switch (payload.actionType) {
-      case 'country-update':
-      case 'city-update':
-        flightDispatcher.waitFor([CityStore.dispatchToken]);
-        FlightPriceStore.price =
-          getFlightPriceStore(CountryStore.country, CityStore.city);
-        break;
-  }
-});
-```
-
-Here's how the same example would work with Hoverboard:
+Here's how the example from the link above would work with Hoverboard:
 
 ```javascript
 // Keeps track of which country is selected
