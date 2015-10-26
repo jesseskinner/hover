@@ -3,24 +3,64 @@ var Hoverboard = (function(){
 
 var slice = [].slice;
 
-// remove a callback from a list of state change listeners
-function removeListener(listeners, callback) {
-	var remainingListeners = [], i, listener;
+// lock a function to prevent recursion
+function createLock(errorMessage) {
+	var isLocked = false;
 
-	for (i=0;i < listeners.length;i++) {
-		listener = listeners[i];
+	// ensure callback only executes once at a time
+	return function (callback) {
+		var result;
 
-		// if this is the callback function, don't include it in the new list
-		if (listener !== callback) {
-			remainingListeners.push(listener);
+		if (isLocked) {
+			throw new Error('Hoverboard: ' + errorMessage);
 		}
-	}
 
-	// return the list of listeners other than the callback
-	return remainingListeners;
+		isLocked = true;
+
+		try {
+			result = callback();
+		} finally {
+			// whether or not there was an error, we're done here
+			isLocked = false;
+		}
+
+		return result;
+	};
 }
 
-// helper function to test if a variable is a function
+// efficiently execute an action given a set of arguments
+function runAction(action, state, args, a, b, c){
+	var len = args.length;
+
+	// actually call the action directly. try to avoid using apply for common cases
+	if (len === 0) {
+		return action(state);
+	} else if (len === 1) {
+		return action(state, a);
+	} else if (len === 2) {
+		return action(state, a, b);
+	} else if (len === 3) {
+		return action(state, a, b, c);
+	}
+
+	// four or more arguments, just use apply
+	args = [state].concat(slice.call(args, 0));
+
+	return action.apply(null, args);
+}
+
+// remove item from array, returning a new array
+function removeFromArray(array, removeItem) {
+	var newArray = [].concat(array);
+	var index = newArray.indexOf(removeItem);
+
+	if (index !== -1) {
+		newArray.splice(index, 1);
+	}
+
+	return newArray;
+}
+
 function isFunction(fn) {
 	return typeof fn === 'function';
 }
@@ -31,90 +71,46 @@ function isObject(obj) {
 	);
 }
 
-// create a class using an object as a prototype
-function createClass(originalClass, setState, initSelf) {
-	var constructor, newClass = function(){
-		initSelf(this);
-		
-		if (constructor) {
-			return constructor.apply(this, [setState]);
+function merge(source, dest, key) {
+	// if source and dest are objects, shallow merge properties into new object
+	if (isObject(source) && isObject(dest)) {
+		// shallow merge
+		for (key in dest) {
+			source[key] = dest[key];
 		}
-	}, original, k;
 
-	// if a "class" is provided, use the prototype as the object
-	if (isFunction(originalClass)) {
-		original = originalClass.prototype;
-		constructor = originalClass;
-		
-	} else {
-		// if an object is provided, use that as the prototype
-		original = originalClass;
+		return source;
 	}
 
-	// copy properties over so we can mangle them without affecting original
-	for (k in original) {
-		newClass.prototype[k] = original[k];
-	}
-
-	return newClass;
+	// otherwise, just return dest
+	return dest;
 }
 
 // return the Hoverboard function
-return function (StoreClass) {
-	// keep track of instance state, defaults to empty object
-	var internalState = {},
+// actions is an iterable of reducers
+return function (actions) {
+	// list of state listeners specific to this store instance
+	var stateListeners = [],
 
-		// list of state listeners specific to this store instance
-		stateListeners = [],
-
-		// ensure only one action is handled at a time globally
-		isActionBeingHandled = 0,
-
-		// used to provide better error message with circular state listening/changing
-		isStateBeingChanged = 0,
+		// undefined by default
+		state,
 
 		// merge a state object into the existing state object
 		setState = function (newState) {
-			var key, i, listeners;
-		
-			// if the state for this store is already being changed, throw an error
-			if (isStateBeingChanged) {
-				throw new Error('Hoverboard: Cannot change state during a state change event');
-			}
+			// make local copy in case someone unsubscribes during
+			var listeners = stateListeners;
 
-			// keep track that state for this store is currently being or has ever changed
-			isStateBeingChanged = 1;
+			// merge newState into the official state
+			state = merge(getState(), newState);
 
-			// if internalState and newState are objects, merge in new properties
-			if (isObject(internalState) && isObject(newState)) {
-				// shallow merge
-				for (key in newState) {
-					internalState[key] = newState[key];
-				}
-
-			// otherwise, just use the newState as official state
-			} else {
-				internalState = newState;
-			}
-
-			try {
-
-				// make local copy in case someone unsubscribes during
-				listeners = stateListeners;
-				
-				// let everyone know the state has changed
-				for (i=0;i < listeners.length;i++) {
-					listeners[i](getState());
-				}
-
-			} finally {
-				// all done changing the state, even if there was an error
-				isStateBeingChanged = 0;
+			// let everyone know the state has changed
+			for (var i=0;i < listeners.length;i++) {
+				listeners[i](getState());
 			}
 		},
 
 		// add a state change listener
-		addStateListener = function (callback){
+		subscribe = function (callback){
 			// add callback as listener to change event
 			stateListeners.push(callback);
 
@@ -125,97 +121,55 @@ return function (StoreClass) {
 			return function () {
 				// only call removeListener once, then destroy the callback
 				if (callback) {
-					stateListeners = removeListener(stateListeners, callback);
-					callback = null;
+					stateListeners = removeFromArray(stateListeners, callback);
+					callback = undefined;
 				}
 			};
 		},
 
 		// returns the current official state. used for actions
-		getState = function () {
-			// return the official state
-			return internalState;
+		getState = function (callback) {
+			// passing a function here is a synonym for subscribe
+			if (isFunction(callback)) {
+				return subscribe(callback);
+			}
+
+			// return a shallow copy of state
+			return merge({}, state);
 		},
 
-		// create an action for the api that calls an action handler method on the instance
-		createAction = function (method) {
+		// ensure only one action is handled at a time
+		actionLock = createLock('Cannot call action in the middle of an action'),
+
+		// create an action for the api that calls an action handler and changes the state
+		createAction = function (action) {
 			// return a function that'll be attached to the api
-			return function (a,b,c) {
+			return function (a, b, c) {
+				var args = arguments;
+
 				// prevent a subsequent action being called during an action
-				if (isActionBeingHandled) {
-					throw new Error('Hoverboard: Cannot call action in the middle of an action');
-				}
+				actionLock(function () {
+					setState(runAction(action, getState(), args, a, b, c));
+				});
 
-				// remember that we're in the middle of an action
-				isActionBeingHandled = 1;
-
-				// initialize the
-				var state = getState(),
-					len = arguments.length,
-					result, args, undefined;
-
-				try {
-					// actually call the action directly. try to avoid using apply for common cases
-					if (len === 0) {
-						result = instance[method](state);
-					} else if (len === 1) {
-						result = instance[method](state, a);
-					} else if (len === 2) {
-						result = instance[method](state, a, b);
-					} else if (len === 3) {
-						result = instance[method](state, a, b, c);
-					} else {
-						// four or more arguments, just use apply
-						args = [state].concat(slice.call(arguments, 0));
-						result = instance[method].apply(instance, args);
-					}
-
-					if (isFunction(result)) {
-						result(setState);
-
-					// only set the state if it's not undefined
-					} else if (result !== undefined) {
-						setState(result);
-					}
-				} finally {
-					// whether or not there was an error, we're done here
-					isActionBeingHandled = 0;
-				}
+				// allow chaining
+				return this;
 			};
 		},
 
-		// return a single public method for getting state (one time or with a listener)
-		api = function (callback) {
-			if (isFunction(callback)) {
-				// return an unsubscribe function if callback is provided
-				return addStateListener(callback);
-			}
+		method;
 
-			// return the state if no callback provided
-			return getState();
-		},
+	// expose these as explicit api on the getState function
+	getState.getState = getState;
+	getState.subscribe = subscribe;
 
-		method,
-
-		// internal store, instance of StoreClass
-		instance;
-
-	// create a special class based on the function or object provided
-	StoreClass = createClass(StoreClass, setState, function(self){
-		instance = self;
-	});
-
-	// instantiate the store class, passing in setState
-	instance = new StoreClass();
-
-	// create actions on the api
-	for (method in instance) {
-		// create an action on the api with appropriate action name
-		api[method] = createAction(method);
+	// create actions on the getState api as well
+	for (method in actions) {
+		getState[method] = createAction(actions[method]);
 	}
 
-	// create & expose the api for public use, exposing actions and getState method
-	return api;
+	// return the getState function as the exposed api
+	return getState;
 };
 
 })(); // execute immediately

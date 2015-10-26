@@ -14,10 +14,8 @@ describe('mixin', function () {
 
 	describe('componentDidMount', function () {
 		it('should call getState on the store, which calls setState on the component', function () {
-			var obj = mixin({
-				getState: function (callback) {
-					callback(123);
-				}
+			var obj = mixin(function (callback) {
+				callback(123);
 			});
 
 			obj.setState = function (state) {
@@ -28,10 +26,8 @@ describe('mixin', function () {
 		});
 
 		it('should also work with a state key', function () {
-			var obj = mixin({
-				getState: function (callback) {
-					callback(123);
-				}
+			var obj = mixin(function (callback) {
+				callback(123);
 			}, 'key');
 
 			obj.setState = function (state) {
@@ -42,10 +38,8 @@ describe('mixin', function () {
 		});
 
 		it('should not allow a mixin to be reused', function () {
-			var obj = mixin({
-				getState: function () {
-					return function () {};
-				}
+			var obj = mixin(function () {
+				return function () {};
 			});
 
 			obj.setState = function () {};
@@ -56,19 +50,17 @@ describe('mixin', function () {
 				// second time should throw error
 				obj.componentDidMount();
 
-			}).to.throw('Cannot reuse a Hoverboard mixin.');
+			}).to.throw('Cannot reuse a mixin.');
 		});
 	});
 
 	describe('componentWillUnmount', function () {
 		it('should call the function returned by getState, only once', function () {
 			var called = 0,
-				obj = mixin({
-					getState: function () {
-						return function () {
-							called++;
-						};
-					}
+				obj = mixin(function () {
+					return function () {
+						called++;
+					};
 				});
 
 			obj.componentDidMount();

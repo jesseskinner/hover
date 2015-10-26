@@ -6,12 +6,8 @@ describe('hoverboard', function () {
 	
 	describe('#init', function () {
 		
-		it('should return an object when passed an object', function () {
+		it('should return a function when passed an object', function () {
 			expect(Hoverboard({})).to.be.a('function');
-		});
-
-		it('should return a function when passed a function', function () {
-			expect(Hoverboard(function(){})).to.be.a('function');
 		});
 
 		it('should create actions from an object', function () {
@@ -26,7 +22,7 @@ describe('hoverboard', function () {
 			var myClass = function(){};
 			myClass.prototype.something = function(){};
 
-			var store = Hoverboard(myClass);
+			var store = Hoverboard(new myClass);
 
 			expect(store.something).to.be.a('function');
 		});
@@ -38,17 +34,19 @@ describe('hoverboard', function () {
 			var ChildClass = function(){};
 			ChildClass.prototype = new ParentClass();
 
-			var store = Hoverboard(ChildClass);
+			var store = Hoverboard(new ChildClass);
 
 			expect(store.something).to.be.a('function');
 		});
 
 		it('should create actions from a module', function () {
-			var store = Hoverboard(function(){
+			function Module(){
 				return {
 					test: function(){}
 				};
-			});
+			};
+
+			var store = Hoverboard(new Module);
 
 			expect(store.test).to.be.a('function');
 		});
@@ -68,59 +66,15 @@ describe('hoverboard', function () {
 		});
 	});
 
-	describe('#callbacks', function(){
-		it('should be available inside an init function', function () {
-			Hoverboard(function (callback) {
-				expect(callback).to.be.a('function');
-			});
-		});
-
-		it('should return empty state object by default', function () {
-			expect(Hoverboard({})()).to.be.an('object');
-		});
-
-		it('should allow mutation of returned state by default', function () {
-			var store = Hoverboard(function (setState) {
-				setState({
-					test: { deep: true }
-				});
-			});
-			
-			store().test.deep = 'bad';
-
-			expect(store().test.deep).to.equal('bad');
-		});
-
-		it('should allow functions in state', function () {
-			var store = Hoverboard(function (setState) {
-				setState({
-					fn: function(){}
-				});
-			});
-			
-			expect(store().fn).to.be.a('function');
-		});
-
-		it('should not be able to cause infinite loop', function () {
-			var store = Hoverboard({
-				action: function () {
-					return function (callback) {
-						store(function () {
-							callback({ foo: 'bar' });
-						}.bind(this));
-					};
-				}
-			});
-
-			expect(store.action).to.throw(Error, /^Hoverboard: Cannot change state during a state change event$/);
-		});
-	});
-
 	describe('#state', function () {
+		it('should return undefined by default', function () {
+			expect(Hoverboard({})()).to.be.undefined;
+		});
+
 		it('should not discard mutations between action handlers', function () {
 			var store = Hoverboard({
 				foo: function (state) {
-					state.test = true;
+					return { test: true };
 				},
 				bar: function (state) {
 					expect(state.test).to.be.true;
@@ -130,78 +84,73 @@ describe('hoverboard', function () {
 			store.foo();
 			store.bar();
 		});
-	});
 
-	describe('#constructor', function () {
-		it('should be passed a callback', function () {
-			var store = Hoverboard(function (callback) {
-				expect(callback).to.be.a('function');
+		it('should return a different object after each action call', function () {
+			var store = Hoverboard({
+				reset: function () {
+					return { value: 0 };
+				},
+				add: function (state, num) {
+					return {
+						value: state.value + num
+					};
+				}
+			});
+			
+			store.reset();
+
+			store.add(2);
+			var result1 = store();
+
+			store.add(3);
+			var result2 = store();
+
+			expect(result1.value).to.equal(2);
+			expect(result2.value).to.equal(5);
+			expect(result1).not.to.equal(result2);
+		});
+
+		it('should not allow mutation of state passed to action', function () {
+			var store = Hoverboard({
+				init: function () {
+					return { value: 'yay' };
+				},
+				mutate: function (state) {
+					state.value = 'boo';
+					return {};
+				}
+			});
+			
+			store.init();
+			store.mutate();
+
+			expect(store().value).to.equal('yay');
+		});
+
+		it('should not allow mutation of state passed to subscriber', function () {
+			var store = Hoverboard({
+				action: function () {
+					return { value: 'yay' };
+				}
+			});
+			
+			store.action();
+
+			store(function (state) {
+				state.value = 'boo';
 			});
 
-			store();
+			expect(store().value).to.equal('yay');
 		});
 
-		it('should update the state', function () {
-			var store = Hoverboard(function (setState) {
-				setState({ test: 123 })
-			});
-			expect(store().test).to.equal(123);
-		});
-
-		it('should throw allow state types are are not objects', function () {
-			var store = Hoverboard(function (setState) {
-				setState(123);
+		it('should not be able to cause infinite loop', function () {
+			var store = Hoverboard({
+				action: function () {
+					store.action();
+				}
 			});
 
-			expect(store()).to.equal(123);
-		});
-
-		it('should allow setState to be called', function () {
-			var store = Hoverboard(function (setState) {
-				setState({
-					a: 1, b: 2
-				});
-			});
-
-			expect(store()).to.eql({ a: 1, b: 2 });
-		});
-	});
-
-	describe('#setState callback', function () {
-		
-		it('should be able to be called from constructor', function () {
-			var MyClass = function (setState) {
-				setState({ test: 123 });
-			};
-
-			var store = Hoverboard(MyClass);
-
-			expect(store().test).to.equal(123);
-		});
-
-		it('should not share state between class instances', function () {
-			var Class = function(){};
-			Class.prototype.change = function(value) {
-				return function(setState) {
-					setState({ value: value });
-				};
-			};
-
-			var storeA = Hoverboard(Class),
-				storeB = Hoverboard(Class);
-
-			storeA.change(true);
-
-			expect(storeB().value).to.be.undefined;
-		});
-
-		it('should merge objects', function () {
-			var store = Hoverboard(function (setState) {
-				setState({ foo: 1 });
-				setState({});
-			});
-
-			expect(store().foo).to.equal(1);
+			expect(store.action).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
 		});
 	});
 
@@ -215,17 +164,6 @@ describe('hoverboard', function () {
 			});
 
 			store.action();
-		});
-
-		it('should throw an error if we trigger an action from an action handler', function () {
-			var a = Hoverboard({
-				test: function () {
-					a.test();
-				}
-			});
-
-			// trigger an infinite loop
-			expect(a.test).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
 		});
 
 		it('should still work with zero, one, two, three or four arguments', function () {
@@ -249,7 +187,18 @@ describe('hoverboard', function () {
 
 			store.action(1,2,3,4);
 			expect(store().len).to.equal(4);
-		})
+		});
+
+		it('should allow chaining', function () {
+			var store = Hoverboard({
+				add: function (state, num) {
+					return (state || 0) + num;
+				}
+			});
+
+			expect(store.add(4).add(2).getState()).to.equal(6);
+			expect(store.add(1).add(5)()).to.equal(12);
+		});
 
 	});
 
@@ -263,30 +212,30 @@ describe('hoverboard', function () {
 			});
 
 			store(function (state) {
-				if (state.test === 123) {
+				if (state === 123) {
 					done();
 				}
 			});
 
-			store.update({ test: 123 });
+			store.update(123);
 		});
 
 		it('should return an unsubscribe function', function (done) {
 			var store = Hoverboard({
 					update: function (state, data) {
-						return { data: data };
+						return data;
 					}
 				}),
 				
 				unsubscribe = store(function (state) {
-					if (state.data === 1) {
+					if (state === 1) {
 						throw "I should not be called";
 					}
 				});
 
-			store(function (state) {
+			store.getState(function (state) {
 				// this should be called
-				if (state.data === 1) {
+				if (state === 1) {
 					done();
 				}
 			});
@@ -304,20 +253,20 @@ describe('hoverboard', function () {
 		it('should unsubscribe without breaking other listeners', function () {
 			var store = Hoverboard({
 					update: function (state, data) {
-						return { data: data };
+						return data;
 					}
 				}),
 
 				success = false,
 
-				unsubscribe = store(function (state) {
-					if (state.data === 1) {
+				unsubscribe = store.getState(function (state) {
+					if (state === 1) {
 						unsubscribe();
 					}
 				});
 
 			store(function (state) {
-				if (state.data === 1) {
+				if (state === 1) {
 					success = true;
 				}
 			});
@@ -331,51 +280,15 @@ describe('hoverboard', function () {
 		it('should prevent actions to be called from listeners', function () {
 			var store = Hoverboard({
 				foo: function () {
-					return { a: 1 };
-				},
-				bar: function () {
+					return 1;
 				}
 			});
 
-			store(function (state) {
-				store.bar();
-			});
-
-			expect(store.foo).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
-		});
-
-		it('should allow stores to listen to other stores', function () {
-			var StoreClass = function (setState) {
-				setState({ number: 0 });
-
-				return {
-					update: function (state, number) {
-						return { number: number };
-					}
-				};
-			};
-
-			var original = Hoverboard(StoreClass);
-
-			var listener = Hoverboard({
-				init: function () {
-					return function (setState) {
-						original(function (state) {
-							if ('number' in state) {
-								setState({
-									twice: 2 * state.number
-								});
-							}
-						});
-					}
-				}
-			});
-
-			listener.init();
-
-			original.update(5);
-
-			expect(listener().twice).to.equal(10);
+			expect(function () {
+				store(function () {
+					store.foo();
+				});
+			}).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
 		});
 	});
 });

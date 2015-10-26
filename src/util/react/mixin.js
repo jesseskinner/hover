@@ -3,12 +3,12 @@
 
 	Usage:
 
-		var HoverboardMixin = require('hoverboard/src/util/mixin');
+		var SubscribeMixin = require('hoverboard/src/util/mixin');
 
 		React.createClass({
 			mixins: [
 				// this will map the state of myStore to this.state.store
-				HoverboardMixin(myStore, 'store')
+				SubscribeMixin(myStore, 'store')
 			],
 
 			render: function () {
@@ -18,31 +18,29 @@
 
 	NOTE: Do not reuse a mixin, each mixin should be only used once.
 */
-module.exports = function (store, key) {
+module.exports = function (subscribe, key) {
 	var unsubscribe;
 
 	return {
 		componentDidMount: function () {
-			var self = this;
-
 			// this should never happen
 			if (unsubscribe) {
-				throw new Error('Cannot reuse a Hoverboard mixin.');
+				throw new Error('Cannot reuse a mixin.');
 			}
 
-			unsubscribe = store.getState(function (storeState) {
+			unsubscribe = subscribe(function (data) {
 				// by default, use the store's state as the component's state
-				var state = storeState;
+				var state = data;
 
-				// but if a key is provided, map the store's state to that key
+				// but if a key is provided, map the data to that key
 				if (key) {
 					state = {};
-					state[key] = storeState;
+					state[key] = data;
 				}
 
 				// update the component's state
-				self.setState(state);
-			});
+				this.setState(state);
+			}.bind(this));
 		},
 
 		componentWillUnmount: function () {
