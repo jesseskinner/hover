@@ -122,7 +122,7 @@ store = Hoverboard(actions);
 by the arguments you pass in when calling it.
 
 	```javascript
-	actions = Hoverboard({
+	store = Hoverboard({
 		hideItem: function(state, id) {
 			var items = state.items;
 
@@ -144,14 +144,14 @@ by the arguments you pass in when calling it.
 	// you could load the store contents asynchronously and pass in as action
 	api.getItems(function (error, items) {
 		if (error) {
-			return actions.error(error);
+			return store.error(error);
 		}
 
-		actions.items(items);
+		store.items(items);
 	});
 
 	// later
-	actions.hideItem("abc");
+	store.hideItem("abc");
 	```
 
 #### Return value
