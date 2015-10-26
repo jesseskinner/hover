@@ -118,6 +118,7 @@ store = Hoverboard(actions);
 #### `actions` object
 
 - Any properties of the actions object will be exposed as methods on the returned `store` object.
+- If you return objects from your actions, they will be shallow merged into the state.
 - Note that your actions will automatically receive `state` as the first parameter, followed
 by the arguments you pass in when calling it.
 
