@@ -1,6 +1,6 @@
 {
   "name": "hoverboard",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "Very lightweight (anti-gravity?) Flux implementation.",
   "main": "src/index.js",
   "directories": {
@@ -33,9 +33,7 @@
     "url": "https://github.com/jesseskinner/hoverboard/issues"
   },
   "homepage": "https://github.com/jesseskinner/hoverboard",
-  "dependencies": {
-    "solve": "^1.2.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "chai": "^1.10.0",
     "coveralls": "^2.11.2",

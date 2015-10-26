@@ -10,23 +10,21 @@
 
 <script>
 	var ClickCounter = Hoverboard({
-		getInitialState: function () {
+		reset: function () {
 			return {
 				value: 0,
 				log: []
 			};
 		},
-		onClick: function (text) {
-			this.state.value++;
-			this.state.log.push(text);
-
-			// need to call setState to make it permanent & notify listeners
-			this.setState(this.state);
-		},
-		onReset: function () {
-			this.replaceState(this.getInitialState());
+		click: function (state, text) {
+			return {
+				value: state.value + 1,
+				log: state.log.concat(text)
+			};
 		}
 	});
+
+	ClickCounter.reset();
 
 	// listen to changes to the state
 	var unsubscribe = ClickCounter.getState(function(clickState){
