@@ -43,7 +43,8 @@ store.subscribe(function (props) {
 });
 ```
 
-Worried about your state being mutated? You can easily return a new object or array from all your actions.
+Worried about your state being mutated? Hoverboard will always create a copy of your state using
+a shallow merge before passing to your store's subscribers or action reducers.
 
 Hoverboard was inspired by other Flux implementations, like [Redux](https://github.com/reakt/redux), [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
 
@@ -106,13 +107,13 @@ Hoverboard is a function that takes a store as a single parameter, either an obj
 ### Syntax
 
 ```javascript
-actions = Hoverboard(store);
+store = Hoverboard(actions);
 ```
 
-#### `store` parameter
+#### `actions` parameter
 
-- Any properties of the store object will be exposed as actions in the returned `actions` object.
-- Note that the properties will receive `state` as the first parameter, but the actions do not.
+- Any properties of the actions object will be exposed as methods on the returned `store` object.
+- Note that the actions will receive `state` as the first parameter, but the methods do not.
 
 	```javascript
 	actions = Hoverboard({
@@ -149,15 +150,15 @@ actions = Hoverboard(store);
 
 #### Return value
 
-`Hoverboard(store)` will return an `actions` object.
+`Hoverboard(actions)` will return a `store` object.
 
-##### `actions` object methods
+##### `store` object methods
 
-- `actions.getState()` or `actions()`
+- `store.getState()` or `store()`
 
-	- Returns the actions's current state.
+	- Returns the store's current state.
 
-- `unsubscribe = actions.subscribe(function)` or `unsubscribe = actions(function)`
+- `unsubscribe = store.subscribe(function)` or `unsubscribe = store(function)`
 
 	- Adds a listener to the state of a store.
 	
@@ -166,7 +167,7 @@ actions = Hoverboard(store);
     - Returns an unsubscribe function. Call it to stop listening to the state.
 
 		```javascript
-		unsubscribe = actions.subscribe(function(state) {
+		unsubscribe = store.subscribe(function(state) {
 			alert(state.value);
 		});
         
@@ -174,7 +175,7 @@ actions = Hoverboard(store);
         unsubscribe();
 		```
 
-- `actions.handleSomeAction(arg1, arg2, ..., argN)`
+- `store.handleSomeAction(arg1, arg2, ..., argN)`
 
 	- Calls an action handler on the store, passing through any arguments.
 
@@ -232,7 +233,18 @@ to using React in your projects.
 Yes, it can work on the server. You can add listeners to stores, and render the
 page once you have everything you need from the stores. To be safe, you should probably unsubscribe from the store listeners once you've rendered the page, so you don't render it twice.
 
-You can also pass in initial data when creating the store, so that can allow you to "re-hydrate" your stores after rendering on the server.
+If you want to be able to "re-hydrate" your stores after rendering on the server, you can
+add an action to do so like the following:
+
+```javascript
+store = Hoverboard({
+	rehydrate: function (state, newState) {
+		return newState;
+	}
+});
+
+store.rehydrate(storeData);
+```
 
 ---
 
@@ -241,7 +253,7 @@ You can also pass in initial data when creating the store, so that can allow you
 There are two ways to achieve this. One way is to load the API outside of the store, and call actions to pass in the loading state, data and/or error as it arrives:
 
 ```javascript
-var Store = Hoverboard({
+var store = Hoverboard({
 	loading: function(state, isLoading) {
 		return { isLoading: isLoading };
 	},
@@ -253,26 +265,26 @@ var Store = Hoverboard({
 	}
 });
 
-Store.loading(true);
+store.loading(true);
 
 getDataFromAPI(params, function(error, data){
-	Store.loading(false);
+	store.loading(false);
 
 	if (error) {
-		return Store.error(error);
+		return store.error(error);
 	}
 
-	Store.data(data);
+	store.data(data);
 });
 ```
 
 Another way is to call the API from within your store itself.
 
 ```javascript
-var Store = Hoverboard({
+var store = Hoverboard({
 	load: function (state, params) {
 		getDataFromAPI(params, function (error, data) {
-			Store.done(error, data);
+			store.done(error, data);
 		});
 
 		return { isLoading: true, error: null, data: null };
@@ -282,7 +294,7 @@ var Store = Hoverboard({
 	}
 });
 
-Store.load(params);
+store.load(params);
 ```
 
 ---
