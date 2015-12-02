@@ -85,6 +85,25 @@ describe('hoverboard', function () {
 			store.bar();
 		});
 
+		it('should not return a different class instance after each action call', function () {
+			var myClass = function(){};
+			var instance = new myClass();
+
+			var store = Hoverboard({
+				reset: function () {
+					return instance;
+				},
+				ping: function (state) {
+					return state;
+				}
+			});
+			
+			store.reset();
+			store.ping();
+
+			expect(store() === instance).to.be.true;
+		});
+
 		it('should return a different object after each action call', function () {
 			var store = Hoverboard({
 				reset: function () {

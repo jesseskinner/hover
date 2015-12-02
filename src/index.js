@@ -66,24 +66,29 @@ function isFunction(fn) {
 }
 
 function isObject(obj) {
-	return obj && typeof obj === 'object' && (
-		typeof obj.length !== 'number' || !isFunction(obj.splice)
-	);
+	return obj && typeof obj === 'object';
 }
 
-function merge(source, dest, key) {
-	// if source and dest are objects, shallow merge properties into new object
-	if (isObject(source) && isObject(dest)) {
-		// shallow merge
-		for (key in dest) {
-			source[key] = dest[key];
+function isPlainObject(obj) {
+	return isObject(obj) &&
+		isFunction(obj.constructor) &&
+		isObject(obj.constructor.prototype) &&
+		obj.constructor.prototype.hasOwnProperty('isPrototypeOf');
+}
+
+function merge(destination, source, key) {
+	// if source and destination are both plain objects
+	if (isPlainObject(destination) && isPlainObject(source)) {
+		// shallow merge properties into destination object
+		for (key in source) {
+			destination[key] = source[key];
 		}
 
-		return source;
+		return destination;
 	}
 
-	// otherwise, just return dest
-	return dest;
+	// otherwise, just return source
+	return source;
 }
 
 // return the Hoverboard function
