@@ -7,8 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "minify-hoverboard": "uglifyjs dist/hoverboard.js -o dist/hoverboard.min.js -m -c",
-    "minify-mixin": "uglifyjs dist/util/react/mixin.js -o dist/util/react/mixin.min.js -m -c",
+    "minify-hoverboard": "./node_modules/.bin/uglifyjs dist/hoverboard.js -o dist/hoverboard.min.js -m -c",
+    "minify-mixin": "./node_modules/.bin/uglifyjs dist/util/react/mixin.js -o dist/util/react/mixin.min.js -m -c",
     "minify": "npm run minify-hoverboard && npm run minify-mixin",
     "globalify-hoverboard": "sed 's/module.exports/var Hoverboard/' src/index.js > dist/hoverboard.js",
     "globalify-mixin": "sed 's/module.exports/var HoverboardMixin/' src/util/react/mixin.js > dist/util/react/mixin.js",
