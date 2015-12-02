@@ -49,7 +49,7 @@ store.getState(function (props) {
 });
 ```
 
-Worried about your state being mutated? If your state is an object, Hoverboard will always create a copy of your state using a shallow merge before passing to your store's subscribers or actions.
+Worried about your state being mutated? If your state is a plain object, Hoverboard will always create a copy of your state using a shallow merge before passing to your store's subscribers or actions.
 
 Hoverboard was inspired by other Flux implementations, like [Redux](https://github.com/reakt/redux), [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
 
@@ -107,7 +107,7 @@ To see how Hoverboard fits into a larger app, with ReactJS and a router, check o
 
 ## Documentation
 
-Hoverboard is a function that takes a store as a single parameter, either an object or a function, and returns an object containing actions.
+Hoverboard is a function that takes an actions object and returns a store object.
 
 ### Syntax
 
@@ -118,9 +118,8 @@ store = Hoverboard(actions);
 #### `actions` object
 
 - Any properties of the actions object will be exposed as methods on the returned `store` object.
-- If you return objects from your actions, they will be shallow merged into the state.
-- Note that your actions will automatically receive `state` as the first parameter, followed
-by the arguments you pass in when calling it.
+- If your state is a plain object, and you return plain objects from your actions, they will be shallow merged together.
+- Note that your actions will automatically receive `state` as the first parameter, followed by the arguments you pass in when calling it.
 
 	```javascript
 	store = Hoverboard({
