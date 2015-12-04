@@ -310,4 +310,156 @@ describe('hoverboard', function () {
 			}).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
 		});
 	});
-});
+
+	describe('Hoverboard.compose', function () {
+		
+		it('should take in static variables', function () {
+			var store = Hoverboard.compose(123);
+
+			expect(store()).to.equal(123);
+		});
+
+		it('should take in functions', function () {
+			var store = Hoverboard.compose(function (setState) {
+				setState(456);
+			});
+
+			expect(store()).to.equal(456);
+		});
+
+		it('should take in a store', function () {
+			var storeA = Hoverboard({
+				init: function (state, newState) {
+					return newState;
+				}
+			});
+
+			var storeB = Hoverboard.compose(storeA);
+
+			expect(storeB()).to.be.undefined;
+
+			storeA.init(789);
+
+			expect(storeB()).to.equal(789);
+		});
+
+		it('should take in an array of stores', function () {
+			var storeA = Hoverboard({
+				init: function (state, newState) {
+					return newState;
+				}
+			});
+			var storeB = Hoverboard({
+				init: function (state, newState) {
+					return newState;
+				}
+			});
+			var mainStore = Hoverboard.compose([
+				storeA, storeB
+			]);
+
+			storeA.init(123);
+			storeB.init(456);
+
+			expect(mainStore().join(',')).to.equal('123,456');
+		});
+
+		it('should take in an empty array', function () {
+			var store = Hoverboard.compose([]);
+
+			expect(store().length).to.equal(0);
+			expect(store() instanceof Array).to.be.true;
+		});
+
+		it('should take in an array of static variables', function () {
+			var store = Hoverboard.compose([ 123, 456 ]);
+
+			expect(store().join(',')).to.equal('123,456');
+		});
+
+		it('should take in an object of stores', function () {
+			var storeA = Hoverboard({
+				init: function (state, newState) {
+					return newState;
+				}
+			});
+			var storeB = Hoverboard({
+				init: function (state, newState) {
+					return newState;
+				}
+			});
+			var mainStore = Hoverboard.compose({
+				a: storeA,
+				b: storeB
+			});
+
+			storeA.init(123);
+			storeB.init(456);
+
+			expect(mainStore().a).to.equal(123);
+			expect(mainStore().b).to.equal(456);
+		});
+
+		it('should take in an object of functions', function () {
+			var store = Hoverboard.compose({
+				a: function (setState) {
+					setState(123);
+				},
+				b: function (setState) {
+					setState(456);
+				}
+			});
+
+			var state = store();
+
+			expect(state.a).to.equal(123);
+			expect(state.b).to.equal(456);
+		});
+
+		it('should be able to do all of this at once', function () {
+			var storeA = Hoverboard({
+				init: function (state, newState) {
+					return newState;
+				}
+			});
+			var storeB = Hoverboard({
+				init: function (state, newState) {
+					return newState;
+				}
+			});
+			var mainStore = Hoverboard.compose({
+				a: function (setState) {
+					setState(123);
+				},
+				b: function (setState) {
+					setState(456);
+				},
+				storeA: storeA,
+				storeB: storeB,
+				staticVar: 'hello',
+				arr: Hoverboard.compose([
+					storeA,
+					storeB,
+					function (setState) {
+						setState('last')
+					}
+				]),
+				staticArr: ['test']
+			});
+
+			storeA.init(789);
+			storeB.init('abc');
+
+			var state = mainStore();
+
+			expect(state.a).to.equal(123);
+			expect(state.b).to.equal(456);
+			expect(state.storeA).to.equal(789);
+			expect(state.storeB).to.equal('abc');
+			expect(state.staticVar).to.equal('hello');
+			expect(state.arr.join(',')).to.equal('789,abc,last');
+			expect(state.staticArr.join(',')).to.equal('test');
+		});
+	});
+
+}); // hoverboard

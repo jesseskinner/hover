@@ -93,7 +93,7 @@ function merge(destination, source, key) {
 
 // return the Hoverboard function
 // actions is an iterable of reducers
-return function (actions) {
+function Hoverboard(actions) {
 	// list of state listeners specific to this store instance
 	var stateListeners = [],
 
@@ -175,5 +175,44 @@ return function (actions) {
 	// return the getState function as the exposed api
 	return getState;
 };
+
+Hoverboard.compose = function (definition) {
+	var store = Hoverboard({
+			s: function (state, newState) {
+				return newState;
+			}
+		}),
+
+		// private setState method
+		setState = store.s;
+
+	delete store.s;
+
+	function subscribe(key) {
+		definition[key](function (state) {
+			definition[key] = state;
+			setState(definition);
+		});
+	}
+
+	if (isFunction(definition)) {
+		definition(setState);
+		
+	} else {
+		setState(definition);
+
+		if (definition) {
+			for (var key in definition) {
+				if (isFunction(definition[key])) {
+					subscribe(key);
+				}
+			}
+		}
+	}
+
+	return store;
+};
+
+return Hoverboard;
 
 })(); // execute immediately

@@ -198,6 +198,42 @@ store = Hoverboard(actions);
 		result = store.getState(); // returns 9
 		```
 
+#### Hoverboard.compose
+
+`Hoverboard.compose` takes a definition and creates a store,
+subscribing to any store members of the definition.
+
+`Hoverboard.compose` can take static variables, objects or arrays.
+
+	```javascript
+	// create two stores
+	var scoreStore = Hoverboard({
+	    init: function (state, initialScore) {
+	        return initialScore;
+	    },
+	    add: function (state, score) {
+	        return state + score;
+	    }
+	});
+	var healthStore = Hoverboard({
+	    init: function (state, initialHealth) {
+	        return initialHealth;
+	    },
+	    hit: function (state, amount) {
+	        return state - amount;
+	    }
+	});
+
+	// compose the two stores into a single store
+	var gameStore = Hoverboard.compose({
+	    score: scoreStore,
+
+	    // create an anonymous store to nest objects
+	    character: Hoverboard.compose({
+	        health: healthStore
+	    })
+	});
+	```
 
 ## FAQ
 
