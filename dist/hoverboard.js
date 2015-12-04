@@ -179,9 +179,15 @@ function Hoverboard(actions) {
 Hoverboard.compose = function (definition) {
 	var store = Hoverboard({
 			s: function (state, newState) {
+				for (var i=0; i < transforms.length; i++) {
+					newState = transforms[i](newState);
+				}
+
 				return newState;
 			}
 		}),
+
+		transforms = slice.call(arguments, 1),
 
 		// private setState method
 		setState = store.s;
