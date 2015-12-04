@@ -460,6 +460,32 @@ describe('hoverboard', function () {
 			expect(state.arr.join(',')).to.equal('789,abc,last');
 			expect(state.staticArr.join(',')).to.equal('test');
 		});
+
+		it('should allow zero or more translate functions', function () {
+			var storeA = Hoverboard({
+				init: function (state, newState) {
+					return newState;
+				}
+			});
+			var storeB = Hoverboard.compose(storeA, function (state) {
+				if (state) {
+					state.a = 100;
+				}
+				return state;
+			}, function (state) {
+				if (state) {
+					state.b += 50;
+				}
+				return state;
+			});
+			
+			expect(storeB()).to.be.undefined;
+
+			storeA.init({ b: 200 });
+
+			expect(storeB().a).to.equal(100);
+			expect(storeB().b).to.equal(250);
+		});
 	});
 
 }); // hoverboard

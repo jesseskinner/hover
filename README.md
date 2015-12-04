@@ -235,6 +235,22 @@ var gameStore = Hoverboard.compose({
 });
 ```
 
+You can also pass zero or more translate functions after your compose definition,
+to automatically translate or map the state every time it gets updated.
+
+These translate functions will receive a `state` argument, and must return the resulting state.
+
+```javascript
+// create stores to contain the active and completed todos
+var activeTodoStore = Hoverboard.compose(todoStore, function (todos) {
+    return _.filter(todos, { completed: false });
+});
+
+var completedTodoStore = Hoverboard.compose(todoStore, function (todos) {
+    return _.filter(todos, { completed: true });
+});
+```
+
 ## FAQ
 
 *Q: Is this really Flux?*
