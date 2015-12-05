@@ -1,6 +1,6 @@
 {
   "name": "hoverboard",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Very lightweight (anti-gravity?) Flux implementation.",
   "main": "src/index.js",
   "directories": {

@@ -486,6 +486,37 @@ describe('hoverboard', function () {
 			expect(storeB().a).to.equal(100);
 			expect(storeB().b).to.equal(250);
 		});
+
+		it('should resolve functions to undefined', function () {
+			var setState;
+			var store = Hoverboard.compose({
+				fn: function (s) {
+					setState = s;
+				}
+			});
+
+			expect(store().fn).to.be.undefined;
+
+			setState(1);
+
+			expect(store().fn).to.equal(1);
+		});
+
+		it('should not mangle the definition for arrays', function () {
+			var fn = function (){},
+				defArray = [fn],
+				storeArray = Hoverboard.compose(defArray);
+
+			expect(defArray[0]).to.equal(fn);
+		});
+
+		it('should not mangle the definition for plain objects', function () {
+			var fn = function (){},
+				defObject = { a: fn },
+				storeObject = Hoverboard.compose(defObject);
+
+			expect(defObject.a).to.equal(fn);
+		});
 	});
 
 }); // hoverboard

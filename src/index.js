@@ -1,7 +1,8 @@
 module.exports = (function(){
 'use strict';
 
-var slice = [].slice;
+var slice = [].slice,
+	toString = Object.prototype.toString;
 
 // lock a function to prevent recursion
 function createLock(errorMessage) {
@@ -61,12 +62,18 @@ function removeFromArray(array, removeItem) {
 	return newArray;
 }
 
+function isArray(arr) {
+    return arr && toString.call(arr) === '[object Array]';
+}
+
 function isFunction(fn) {
 	return typeof fn === 'function';
 }
 
 function isObject(obj) {
-	return obj && typeof obj === 'object';
+	return obj &&
+		typeof obj === 'object' &&
+		toString.call(obj) === '[object Object]';
 }
 
 function isPlainObject(obj) {
@@ -78,7 +85,7 @@ function isPlainObject(obj) {
 
 function merge(destination, source, key) {
 	// if source and destination are both plain objects
-	if (isPlainObject(destination) && isPlainObject(source)) {
+	if (isPlainObject(source) && isPlainObject(destination)) {
 		// shallow merge properties into destination object
 		for (key in source) {
 			destination[key] = source[key];
@@ -194,8 +201,20 @@ Hoverboard.compose = function (definition) {
 
 	delete store.s;
 
+	// make a local copy of definition if possible (plain object or array)
+	if (isArray(definition)) {
+		definition = slice.call(definition);
+		
+	} else if (isPlainObject(definition)) {
+		definition = merge({}, definition);
+	}
+
 	function subscribe(key) {
-		definition[key](function (state) {
+		var fn = definition[key];
+		
+		delete definition[key];
+
+		fn(function (state) {
 			definition[key] = state;
 			setState(definition);
 		});
