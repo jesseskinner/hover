@@ -544,6 +544,16 @@ describe('hoverboard', function () {
 
 			expect(defObject.a).to.equal(fn);
 		});
+
+		it('should not leak state through translations', function () {
+			var store = Hoverboard.compose({
+				a: Hoverboard.compose(1)
+			}, function () {
+				return { b: 2 };
+			});
+
+			expect('a' in store()).to.be.false;
+		});
 	});
 
 }); // hoverboard

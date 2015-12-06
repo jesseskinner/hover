@@ -186,12 +186,10 @@ function Hoverboard(actions) {
 Hoverboard.compose = function (definition) {
 	var store = Hoverboard({
 			s: function (state, newState) {
-				if (!initializing) {
-					newState = merge(state, newState);
+				newState = merge(state, newState);
 
-					for (var i=0; i < transforms.length; i++) {
-						newState = transforms[i](newState);
-					}
+				for (var i=0; i < transforms.length; i++) {
+					newState = transforms[i](newState);
 				}
 
 				return newState;
@@ -205,38 +203,42 @@ Hoverboard.compose = function (definition) {
 		// so we'll need to use merge to make sure transforms get full state
 		definitionIsFunction = isFunction(definition),
 
-		// unless definition is a function, hold off on running transforms for now
-		initializing = !definitionIsFunction,
-
 		// private setState method
-		setState = store.s;
+		setState = store.s,
+
+		initialized = false,
+
+		subscribe = function (key) {
+			var fn = definition[key];
+
+			definition[key] = undefined;
+
+			fn(function (state) {
+				definition[key] = state;
+
+				// pass to setState, but only after compose is done
+				if (initialized) {
+					setState(definition);
+				}
+			});
+		};
 
 	delete store.s;
-
-	// make a local copy of definition if possible (plain object or array)
-	if (isArray(definition)) {
-		definition = slice.call(definition);
-		
-	} else if (isPlainObject(definition)) {
-		definition = merge({}, definition);
-	}
-
-	function subscribe(key) {
-		var fn = definition[key];
-		
-		definition[key] = undefined;
-
-		fn(function (state) {
-			definition[key] = state;
-			setState(definition);
-		});
-	}
 
 	if (definitionIsFunction) {
 		definition(setState);
 
 	} else {
-		if (definition) {
+		if (definition) {	
+			// make a local copy of definition if possible (plain object or array)
+			if (isArray(definition)) {
+				definition = slice.call(definition);
+				
+			} else if (isPlainObject(definition)) {
+				definition = merge({}, definition);
+			}
+
+			// collect subscriptions without actually executing yet
 			for (var key in definition) {
 				if (isFunction(definition[key])) {
 					subscribe(key);
@@ -244,11 +246,10 @@ Hoverboard.compose = function (definition) {
 			}
 		}
 
-		// now it's safe to let transforms have access to the state
-		initializing = false;
-
 		// call setState with final definition, so transforms can do their thing
 		setState(definition);
+
+		initialized = true;
 	}
 
 	return store;
