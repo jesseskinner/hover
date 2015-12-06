@@ -327,6 +327,20 @@ describe('hoverboard', function () {
 			expect(store()).to.equal(456);
 		});
 
+		it('should pass the full state in to transforms when using functions', function () {
+			var lastState;
+			var store = Hoverboard.compose(function (setState) {
+				setState({ a: 1 });
+				setState({ b: 2 });
+			}, function (state) {
+				lastState = state;
+				return state;
+			});
+
+			expect(lastState.b).to.equal(2);
+			expect(lastState.a).to.equal(1);
+		});
+
 		it('should take in a store', function () {
 			var storeA = Hoverboard({
 				init: function (state, newState) {
@@ -500,6 +514,19 @@ describe('hoverboard', function () {
 			setState(1);
 
 			expect(store().fn).to.equal(1);
+		});
+
+		it('should resolve functions to undefined in translate function too', function () {
+			var store = Hoverboard.compose({
+				fn: function () {},
+				fn2: function (){}
+			}, function (state) {
+				expect('fn' in state).to.be.true;
+				expect(state.fn).to.be.undefined;
+
+				expect('fn2' in state).to.be.true;
+				expect(state.fn2).to.be.undefined;
+			});
 		});
 
 		it('should not mangle the definition for arrays', function () {

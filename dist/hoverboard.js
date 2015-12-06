@@ -186,15 +186,27 @@ function Hoverboard(actions) {
 Hoverboard.compose = function (definition) {
 	var store = Hoverboard({
 			s: function (state, newState) {
-				for (var i=0; i < transforms.length; i++) {
-					newState = transforms[i](newState);
+				if (!initializing) {
+					newState = merge(state, newState);
+
+					for (var i=0; i < transforms.length; i++) {
+						newState = transforms[i](newState);
+					}
 				}
 
 				return newState;
 			}
 		}),
 
+		// we will use arguments once we're done initializing
 		transforms = slice.call(arguments, 1),
+
+		// in this case, we're exposing the raw setState,
+		// so we'll need to use merge to make sure transforms get full state
+		definitionIsFunction = isFunction(definition),
+
+		// unless definition is a function, hold off on running transforms for now
+		initializing = !definitionIsFunction,
 
 		// private setState method
 		setState = store.s;
@@ -212,7 +224,7 @@ Hoverboard.compose = function (definition) {
 	function subscribe(key) {
 		var fn = definition[key];
 		
-		delete definition[key];
+		definition[key] = undefined;
 
 		fn(function (state) {
 			definition[key] = state;
@@ -220,12 +232,10 @@ Hoverboard.compose = function (definition) {
 		});
 	}
 
-	if (isFunction(definition)) {
+	if (definitionIsFunction) {
 		definition(setState);
-		
-	} else {
-		setState(definition);
 
+	} else {
 		if (definition) {
 			for (var key in definition) {
 				if (isFunction(definition[key])) {
@@ -233,6 +243,12 @@ Hoverboard.compose = function (definition) {
 				}
 			}
 		}
+
+		// now it's safe to let transforms have access to the state
+		initializing = false;
+
+		// call setState with final definition, so transforms can do their thing
+		setState(definition);
 	}
 
 	return store;
