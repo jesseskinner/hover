@@ -1,8 +1,7 @@
 module.exports = (function(){
 'use strict';
 
-var slice = [].slice,
-	toString = Object.prototype.toString;
+var slice = [].slice;
 
 // lock a function to prevent recursion
 function createLock(errorMessage) {
@@ -29,27 +28,6 @@ function createLock(errorMessage) {
 	};
 }
 
-// efficiently execute an action given a set of arguments
-function runAction(action, state, args, a, b, c){
-	var len = args.length;
-
-	// actually call the action directly. try to avoid using apply for common cases
-	if (len === 0) {
-		return action(state);
-	} else if (len === 1) {
-		return action(state, a);
-	} else if (len === 2) {
-		return action(state, a, b);
-	} else if (len === 3) {
-		return action(state, a, b, c);
-	}
-
-	// four or more arguments, just use apply
-	args = [state].concat(slice.call(args, 0));
-
-	return action.apply(null, args);
-}
-
 // remove item from array, returning a new array
 function removeFromArray(array, removeItem) {
 	var newArray = [].concat(array);
@@ -62,40 +40,8 @@ function removeFromArray(array, removeItem) {
 	return newArray;
 }
 
-function isArray(arr) {
-    return arr && toString.call(arr) === '[object Array]';
-}
-
 function isFunction(fn) {
 	return typeof fn === 'function';
-}
-
-function isObject(obj) {
-	return obj &&
-		typeof obj === 'object' &&
-		toString.call(obj) === '[object Object]';
-}
-
-function isPlainObject(obj) {
-	return isObject(obj) &&
-		isFunction(obj.constructor) &&
-		isObject(obj.constructor.prototype) &&
-		obj.constructor.prototype.hasOwnProperty('isPrototypeOf');
-}
-
-function merge(destination, source, key) {
-	// if source and destination are both plain objects
-	if (isPlainObject(source) && isPlainObject(destination)) {
-		// shallow merge properties into destination object
-		for (key in source) {
-			destination[key] = source[key];
-		}
-
-		return destination;
-	}
-
-	// otherwise, just return source
-	return source;
 }
 
 // return the Hoverboard function
@@ -107,27 +53,13 @@ function Hoverboard(actions) {
 		// undefined by default
 		state,
 
-		// merge a state object into the existing state object
-		setState = function (newState) {
-			// make local copy in case someone unsubscribes during
-			var listeners = stateListeners;
-
-			// merge newState into the official state
-			state = merge(getState(), newState);
-
-			// let everyone know the state has changed
-			for (var i=0;i < listeners.length;i++) {
-				listeners[i](getState());
-			}
-		},
-
 		// add a state change listener
 		subscribe = function (callback) {
 			// add callback as listener to change event
 			stateListeners.push(callback);
 
 			// call callback right away
-			callback(getState());
+			callback(state);
 
 			// return an unsubscribe function specific to this listener
 			return function () {
@@ -146,8 +78,8 @@ function Hoverboard(actions) {
 				return subscribe(callback);
 			}
 
-			// return a shallow copy of state
-			return merge({}, state);
+			// return state
+			return state;
 		},
 
 		// ensure only one action is handled at a time
@@ -156,16 +88,26 @@ function Hoverboard(actions) {
 		// create an action for the api that calls an action handler and changes the state
 		createAction = function (action) {
 			// return a function that'll be attached to the api
-			return function (a, b, c) {
-				var args = arguments;
+			return function () {
+				var args = [state].concat(slice.call(arguments, 0)),
+
+					// make local copy in case someone unsubscribes during
+					listeners = stateListeners,
+
+					i;
 
 				// prevent a subsequent action being called during an action
 				actionLock(function () {
-					setState(runAction(action, getState(), args, a, b, c));
+					state = action.apply(null, args);
+
+					// let everyone know the state has changed
+					for (i=0; i < listeners.length; i++) {
+						listeners[i](state);
+					}
 				});
 
-				// allow chaining
-				return this;
+				// return resulting state
+				return state;
 			};
 		},
 
@@ -186,8 +128,6 @@ function Hoverboard(actions) {
 Hoverboard.compose = function (definition) {
 	var store = Hoverboard({
 			s: function (state, newState) {
-				newState = merge(state, newState);
-
 				for (var i=0; i < transforms.length; i++) {
 					newState = transforms[i](newState);
 				}
@@ -230,14 +170,6 @@ Hoverboard.compose = function (definition) {
 
 	} else {
 		if (definition) {	
-			// make a local copy of definition if possible (plain object or array)
-			if (isArray(definition)) {
-				definition = slice.call(definition);
-				
-			} else if (isPlainObject(definition)) {
-				definition = merge({}, definition);
-			}
-
 			// collect subscriptions without actually executing yet
 			for (var key in definition) {
 				if (isFunction(definition[key])) {

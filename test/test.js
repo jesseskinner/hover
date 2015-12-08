@@ -129,24 +129,24 @@ describe('hoverboard', function () {
 			expect(result1).not.to.equal(result2);
 		});
 
-		it('should not allow mutation of state passed to action', function () {
+		it('should not prevent mutation of state passed to action', function () {
 			var store = Hoverboard({
 				init: function () {
 					return { value: 'yay' };
 				},
 				mutate: function (state) {
 					state.value = 'boo';
-					return {};
+					return state;
 				}
 			});
 			
 			store.init();
 			store.mutate();
 
-			expect(store().value).to.equal('yay');
+			expect(store().value).to.equal('boo');
 		});
 
-		it('should not allow mutation of state passed to subscriber', function () {
+		it('should not prevent mutation of state passed to subscriber', function () {
 			var store = Hoverboard({
 				action: function () {
 					return { value: 'yay' };
@@ -159,7 +159,7 @@ describe('hoverboard', function () {
 				state.value = 'boo';
 			});
 
-			expect(store().value).to.equal('yay');
+			expect(store().value).to.equal('boo');
 		});
 
 		it('should not be able to cause infinite loop', function () {
@@ -208,15 +208,15 @@ describe('hoverboard', function () {
 			expect(store().len).to.equal(4);
 		});
 
-		it('should allow chaining', function () {
+		it('should return state', function () {
 			var store = Hoverboard({
 				add: function (state, num) {
 					return (state || 0) + num;
 				}
 			});
 
-			expect(store.add(4).add(2).getState()).to.equal(6);
-			expect(store.add(1).add(5)()).to.equal(12);
+			expect(store.add(4)).to.equal(4);
+			expect(store.add(2)).to.equal(6);
 		});
 
 	});
@@ -327,7 +327,7 @@ describe('hoverboard', function () {
 			expect(store()).to.equal(456);
 		});
 
-		it('should pass the full state in to transforms when using functions', function () {
+		it('should pass the state in to transforms when using functions', function () {
 			var lastState;
 			var store = Hoverboard.compose(function (setState) {
 				setState({ a: 1 });
@@ -338,7 +338,7 @@ describe('hoverboard', function () {
 			});
 
 			expect(lastState.b).to.equal(2);
-			expect(lastState.a).to.equal(1);
+			expect(lastState.a).to.be.undefined;
 		});
 
 		it('should take in a store', function () {
@@ -529,20 +529,20 @@ describe('hoverboard', function () {
 			});
 		});
 
-		it('should not mangle the definition for arrays', function () {
-			var fn = function (){},
+		it('should use the definition for arrays as the state container', function () {
+			var fn = function (setState){ setState(1) },
 				defArray = [fn],
 				storeArray = Hoverboard.compose(defArray);
 
-			expect(defArray[0]).to.equal(fn);
+			expect(defArray[0]).to.equal(1);
 		});
 
-		it('should not mangle the definition for plain objects', function () {
-			var fn = function (){},
+		it('should use the definition for plain objects as the state container', function () {
+			var fn = function (setState){ setState(2) },
 				defObject = { a: fn },
 				storeObject = Hoverboard.compose(defObject);
 
-			expect(defObject.a).to.equal(fn);
+			expect(defObject.a).to.equal(2);
 		});
 
 		it('should not leak state through translations', function () {
