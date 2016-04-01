@@ -1,19 +1,13 @@
 {
   "name": "hoverboard",
-  "version": "3.0.0-alpha",
+  "version": "3.0.0-alpha.2",
   "description": "Very lightweight (anti-gravity?) Flux implementation.",
   "main": "src/index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "minify-hoverboard": "./node_modules/.bin/uglifyjs dist/hoverboard.js -o dist/hoverboard.min.js -m -c",
-    "minify-mixin": "./node_modules/.bin/uglifyjs dist/util/react/mixin.js -o dist/util/react/mixin.min.js -m -c",
-    "minify": "npm run minify-hoverboard && npm run minify-mixin",
-    "globalify-hoverboard": "sed 's/module.exports/var Hoverboard/' src/index.js > dist/hoverboard.js",
-    "globalify-mixin": "sed 's/module.exports/var HoverboardMixin/' src/util/react/mixin.js > dist/util/react/mixin.js",
-    "globalify": "npm run globalify-hoverboard && npm run globalify-mixin",
-    "build": "npm test && npm run globalify && npm run minify",
+    "size": "./node_modules/.bin/uglifyjs src/index.js -m -c | gzip | wc -c",
     "watch": "mocha --recursive -wGR nyan",
     "test-travis": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
     "test": "mocha --recursive"
@@ -33,13 +27,12 @@
     "url": "https://github.com/jesseskinner/hoverboard/issues"
   },
   "homepage": "https://github.com/jesseskinner/hoverboard",
-  "dependencies": {},
   "devDependencies": {
-    "chai": "^3.4.0",
-    "coveralls": "^2.11.4",
-    "istanbul": "^0.4.0",
-    "mocha": "^2.3.3",
-    "mocha-lcov-reporter": "^1.0.0",
-    "uglify-js": "^2.6.1"
+    "chai": "^3.5.0",
+    "coveralls": "^2.11.9",
+    "istanbul": "^0.4.2",
+    "mocha": "^2.4.5",
+    "mocha-lcov-reporter": "^1.2.0",
+    "uglify-js": "^2.6.2"
   }
 }

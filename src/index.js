@@ -1,4 +1,4 @@
-module.exports = (function(){
+var Hoverboard = (function(){
 'use strict';
 
 var slice = [].slice;
@@ -148,8 +148,10 @@ Hoverboard.compose = function (definition) {
 
 		initialized = false,
 
+		key,
+
 		subscribe = function (key) {
-			var fn = definition[key];
+			var fn = store[key] = definition[key];
 
 			definition[key] = undefined;
 
@@ -161,6 +163,17 @@ Hoverboard.compose = function (definition) {
 					setState(definition);
 				}
 			});
+		},
+
+		translateAction = function (key) {
+			var action = definition[key];
+
+			return function () {
+				action.apply(null, arguments);
+
+				// return translated state
+				return store();
+			};
 		};
 
 	delete store.s;
@@ -168,10 +181,16 @@ Hoverboard.compose = function (definition) {
 	if (definitionIsFunction) {
 		definition(setState);
 
+		for (key in definition) {
+			if (isFunction(definition[key]) && definition[key] !== definition) {
+				store[key] = translateAction(key);
+			}
+		}
+
 	} else {
-		if (definition) {	
+		if (definition) {
 			// collect subscriptions without actually executing yet
-			for (var key in definition) {
+			for (key in definition) {
 				if (isFunction(definition[key])) {
 					subscribe(key);
 				}
@@ -190,3 +209,8 @@ Hoverboard.compose = function (definition) {
 return Hoverboard;
 
 })(); // execute immediately
+
+// export for CommonJS
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+	module.exports = Hoverboard;
+}

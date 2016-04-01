@@ -3,9 +3,9 @@ var expect = chai.expect;
 var Hoverboard = require('../src/index');
 
 describe('hoverboard', function () {
-	
+
 	describe('#init', function () {
-		
+
 		it('should return a function when passed an object', function () {
 			expect(Hoverboard({})).to.be.a('function');
 		});
@@ -80,7 +80,7 @@ describe('hoverboard', function () {
 					expect(state.test).to.be.true;
 				}
 			});
-			
+
 			store.foo();
 			store.bar();
 		});
@@ -97,7 +97,7 @@ describe('hoverboard', function () {
 					return state;
 				}
 			});
-			
+
 			store.reset();
 			store.ping();
 
@@ -115,7 +115,7 @@ describe('hoverboard', function () {
 					};
 				}
 			});
-			
+
 			store.reset();
 
 			store.add(2);
@@ -139,7 +139,7 @@ describe('hoverboard', function () {
 					return state;
 				}
 			});
-			
+
 			store.init();
 			store.mutate();
 
@@ -152,7 +152,7 @@ describe('hoverboard', function () {
 					return { value: 'yay' };
 				}
 			});
-			
+
 			store.action();
 
 			store(function (state) {
@@ -174,7 +174,7 @@ describe('hoverboard', function () {
 	});
 
 	describe('#action()', function () {
-		
+
 		it('should call an action handler', function (done) {
 			var store = Hoverboard({
 				action: function () {
@@ -222,7 +222,7 @@ describe('hoverboard', function () {
 	});
 
 	describe('#getState(function)', function () {
-		
+
 		it('should allow state listeners on stores', function (done) {
 			var store = Hoverboard({
 				update: function (state, newState) {
@@ -245,7 +245,7 @@ describe('hoverboard', function () {
 						return data;
 					}
 				}),
-				
+
 				unsubscribe = store(function (state) {
 					if (state === 1) {
 						throw "I should not be called";
@@ -312,7 +312,7 @@ describe('hoverboard', function () {
 	});
 
 	describe('Hoverboard.compose', function () {
-		
+
 		it('should take in static variables', function () {
 			var store = Hoverboard.compose(123);
 
@@ -492,7 +492,7 @@ describe('hoverboard', function () {
 				}
 				return state;
 			});
-			
+
 			expect(storeB()).to.be.undefined;
 
 			storeA.init({ b: 200 });
@@ -553,6 +553,79 @@ describe('hoverboard', function () {
 			});
 
 			expect('a' in store()).to.be.false;
+		});
+
+		it('should pass-through actions on simple wrapper', function () {
+			var store = Hoverboard({
+				action: function(state, newState) { return newState }
+			});
+
+			var composed = Hoverboard.compose(store);
+
+			composed.action(123);
+
+			expect(composed()).to.equal(123);
+		});
+
+		it('should pass-through actions on translated store', function () {
+			var store = Hoverboard({
+				action: function(state, newState) { return newState }
+			});
+
+			var composed = Hoverboard.compose(store, function (state) {
+				return state * 2
+			});
+
+			expect(composed.action(123)).to.equal(246);
+
+			expect(composed).to.equal(composed.getState);
+		});
+
+		it('should pass-through stores in object structure', function () {
+			var store = Hoverboard({
+				action: function(state, newState) { return newState }
+			});
+
+			var composed = Hoverboard.compose({
+				storeA: store,
+				storeB: store,
+				static: 5
+			});
+
+			expect(composed.storeA).to.equal(store);
+			expect(composed.storeA.action).to.equal(store.action);
+			expect(composed.storeB).to.equal(store);
+			expect(composed.static).to.be.undefined;
+		});
+
+		it('should pass-through stores in array structure', function () {
+			var store = Hoverboard({
+				action: function(state, newState) { return newState }
+			});
+
+			var composed = Hoverboard.compose([
+				store,
+				store
+			]);
+
+			expect(composed[0]).to.equal(store)
+			expect(composed[0].action).to.equal(store.action)
+			expect(composed[1]).to.equal(store)
+		});
+
+		it('should pass-through stores in nested structure', function () {
+			var store = Hoverboard({
+				action: function(state, newState) { return newState }
+			});
+
+			var composed = Hoverboard.compose({
+				things: Hoverboard.compose({
+					store: store
+				})
+			});
+
+			expect(composed.things.store).to.equal(store)
+			expect(composed.things.store.action).to.equal(store.action)
 		});
 	});
 

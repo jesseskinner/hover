@@ -18,7 +18,7 @@
 
 	NOTE: Do not reuse a mixin, each mixin should be only used once.
 */
-module.exports = function (subscribe, key) {
+function SubscribeMixin(subscribe, key) {
 	var unsubscribe;
 
 	return {
@@ -54,3 +54,8 @@ module.exports = function (subscribe, key) {
 		}
 	};
 };
+
+// export for CommonJS
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+	module.exports = SubscribeMixin;
+}

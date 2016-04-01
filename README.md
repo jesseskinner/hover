@@ -2,24 +2,20 @@
 
 A very lightweight (anti-gravity?) data model and [Flux](https://facebook.github.io/flux/) store with actions and a state change listener.
 
-[![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Bower version][bower-image]][bower-url]
+[![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url]
 
 [![Build Status][travis-image]][travis-url] [![Coverage Status][coveralls-image]][coveralls-url] [![Dependency status][david-dm-image]][david-dm-url] [![Dev Dependency status][david-dm-dev-image]][david-dm-dev-url]
 
 
 ## Installation
 
-You can use either npm or bower to install Hoverboard, or [download the standalone files here](https://github.com/jesseskinner/hoverboard/tree/master/dist).
+You can use npm to install Hoverboard, or [download the raw file here](https://raw.githubusercontent.com/jesseskinner/hoverboard/master/src/index.js).
 
 For more information, check out the [Concept](#concept), [Usage](#usage), [Documentation](#documentation) and [FAQ](#faq) below.
 
 
 ```
 npm install hoverboard
-```
-
-```
-bower install hoverboard-flux
 ```
 
 ## Concept
@@ -127,7 +123,7 @@ store = Hoverboard(actions);
 			var items = state.items;
 
 			items[id].hidden = true;
-		
+
 			// return the new state
 			return { items: items };
 		},
@@ -167,7 +163,7 @@ store = Hoverboard(actions);
 - `unsubscribe = store.getState(function)` or `unsubscribe = store(function)`
 
 	- Adds a listener to the state of a store.
-	
+
 	- The listener callback will be called immediately, and again whenever the state changed.
 
     - Returns an unsubscribe function. Call it to stop listening to the state.
@@ -176,7 +172,7 @@ store = Hoverboard(actions);
 		unsubscribe = store.getState(function(state) {
 			alert(state.value);
 		});
-        
+
         // stop listening
         unsubscribe();
 		```
@@ -233,6 +229,11 @@ var gameStore = Hoverboard.compose({
         health: healthStore
     })
 });
+
+// stores and actions can be accessed with the same structure
+gameStore.score.add(2);
+
+gameStore.character.health.hit(1);
 ```
 
 You can also pass zero or more translate functions after your compose definition,
