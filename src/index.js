@@ -46,36 +46,29 @@ function isFunction(fn) {
 
 // return the Hoverboard function
 // actions is an iterable of reducers
-function Hoverboard(actions) {
+// state is undefined by default, but initial state can be provided
+function Hoverboard(actions, state) {
 	// list of state listeners specific to this store instance
 	var stateListeners = [],
-
-		// undefined by default
-		state,
-
-		// add a state change listener
-		subscribe = function (callback) {
-			// add callback as listener to change event
-			stateListeners.push(callback);
-
-			// call callback right away
-			callback(state);
-
-			// return an unsubscribe function specific to this listener
-			return function () {
-				// only call removeListener once, then destroy the callback
-				if (callback) {
-					stateListeners = removeFromArray(stateListeners, callback);
-					callback = undefined;
-				}
-			};
-		},
 
 		// returns the current official state. used for actions
 		getState = function (callback) {
 			// passing a function here is a synonym for subscribe
 			if (isFunction(callback)) {
-				return subscribe(callback);
+				// add callback as listener to change event
+				stateListeners.push(callback);
+
+				// call callback right away
+				callback(state);
+
+				// return an unsubscribe function specific to this listener
+				return function () {
+					// only call removeListener once, then destroy the callback
+					if (callback) {
+						stateListeners = removeFromArray(stateListeners, callback);
+						callback = undefined;
+					}
+				};
 			}
 
 			// return state
@@ -92,16 +85,14 @@ function Hoverboard(actions) {
 				var args = [state].concat(slice.call(arguments, 0)),
 
 					// make local copy in case someone unsubscribes during
-					listeners = stateListeners,
-
-					i;
+					listeners = stateListeners;
 
 				// prevent a subsequent action being called during an action
 				actionLock(function () {
 					state = action.apply(null, args);
 
 					// let everyone know the state has changed
-					for (i=0; i < listeners.length; i++) {
+					for (var i=0; i < listeners.length; i++) {
 						listeners[i](state);
 					}
 				});
@@ -113,8 +104,13 @@ function Hoverboard(actions) {
 
 		method;
 
-	// expose these as explicit api on the getState function
-	getState.getState = getState;
+	// DEPRECATED: expose getState as explicit api on the store
+	getState.getState = function (callback) {
+		if (typeof console !== 'undefined' && typeof console.error === 'function') {
+			console.error('Hoverboard: store.getState() is deprecated. Use store() instead.');
+		}
+		return getState(callback);
+	};
 
 	// create actions on the getState api as well
 	for (method in actions) {

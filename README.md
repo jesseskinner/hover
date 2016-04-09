@@ -37,15 +37,13 @@ store.action("Hello, World!");
 Hoverboard makes it incredibly easy to subscribe to state changes. You can add a listener by calling the model as a function. Your callback will be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state.
 
 ```javascript
-store.getState(function (props) {
-	React.render(
-		<UserProfile {...props} actions={actions} />,
+store(function (props) {
+	ReactDOM.render(
+		<UserProfile {...props} actions={store} />,
 		document.getElementById('user-profile')
 	);
 });
 ```
-
-Worried about your state being mutated? If your state is a plain object, Hoverboard will always create a copy of your state using a shallow merge before passing to your store's subscribers or actions.
 
 Hoverboard was inspired by other Flux implementations, like [Redux](https://github.com/reakt/redux), [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
 
@@ -108,7 +106,7 @@ Hoverboard is a function that takes an actions object and returns a store object
 ### Syntax
 
 ```javascript
-store = Hoverboard(actions);
+store = Hoverboard(actions[, initialState]);
 ```
 
 #### `actions` object
@@ -152,15 +150,15 @@ store = Hoverboard(actions);
 
 #### Return value
 
-`Hoverboard(actions)` will return a `store` object.
+`Hoverboard(actions[, initialState])` will return a `store` object.
 
 ##### `store` object methods
 
-- `store.getState()` or `store()`
+- `store()`
 
 	- Returns the store's current state.
 
-- `unsubscribe = store.getState(function)` or `unsubscribe = store(function)`
+- `unsubscribe = store(function)`
 
 	- Adds a listener to the state of a store.
 
@@ -169,7 +167,7 @@ store = Hoverboard(actions);
     - Returns an unsubscribe function. Call it to stop listening to the state.
 
 		```javascript
-		unsubscribe = store.getState(function(state) {
+		unsubscribe = store(function(state) {
 			alert(state.value);
 		});
 
@@ -177,7 +175,7 @@ store = Hoverboard(actions);
         unsubscribe();
 		```
 
-- `store.handleSomeAction(arg1, arg2, ..., argN)`
+- `store.someAction(arg1, arg2, ..., argN)`
 
 	- Calls an action handler on the store, passing through any arguments.
 
@@ -191,7 +189,7 @@ store = Hoverboard(actions);
 		store.add(5);
 		store.add(4);
 
-		result = store.getState(); // returns 9
+		result = store(); // returns 9
 		```
 
 #### Hoverboard.compose
@@ -204,21 +202,15 @@ subscribing to any store members of the definition.
 ```javascript
 // create two stores
 var scoreStore = Hoverboard({
-    init: function (state, initialScore) {
-        return initialScore;
-    },
     add: function (state, score) {
         return state + score;
     }
-});
+}, 0);
 var healthStore = Hoverboard({
-    init: function (state, initialHealth) {
-        return initialHealth;
-    },
     hit: function (state, amount) {
         return state - amount;
     }
-});
+}, 100);
 
 // compose the two stores into a single store
 var gameStore = Hoverboard.compose({
@@ -287,23 +279,13 @@ Yes, it can work on the server. You can add listeners to stores, and render the
 page once you have everything you need from the stores. To be safe, you should probably unsubscribe from the store listeners once you've rendered the page, so you don't render it twice.
 
 If you want to be able to "re-hydrate" your stores after rendering on the server, you can
-add a simple init action to do so like the following:
-
-```javascript
-store = Hoverboard({
-	init: function (state, initialState) {
-		return initialState;
-	}
-});
-
-store.init(storeData);
-```
+pass the initial state as the second parameter when creating your `Hoverboard` store.
 
 ---
 
 *Q: How does Hoverboard handle asynchronous loading of data from an API?*
 
-There are two ways to achieve this. One way is to load the API outside of the store, and call actions to pass in the loading state, data and/or error as it arrives:
+There are three ways to achieve this. One way is to load the API outside of the store, and call actions to pass in the loading state, data and/or error as it arrives:
 
 ```javascript
 var store = Hoverboard({
@@ -350,8 +332,6 @@ var store = Hoverboard({
 store.load(params);
 ```
 
-You could also put the loading code into an action, and only trigger it when you need the data.
-
 ---
 
 *Q: If Hoverboard stores only have a single getter, how can I have both getAll and getById?*
@@ -361,10 +341,9 @@ then you might want to have an items property that contains the list, and an ite
 that contains the item you need. Something like this:
 
 ```javascript
+var initialState = { abc: 123, /* etc... */ };
+
 var itemStore = Hoverboard({
-	init: function (state, data) {
-		return data;
-	},
 	// update item whenever ID changes
 	viewById: function (state, id) {
 		return {
@@ -377,10 +356,7 @@ var itemStore = Hoverboard({
 			items: state.items
 		}
 	}
-});
-
-// initalize with data
-itemStore.init({ abc: 123, /* etc... */ });
+}, initialState);
 
 // getAll
 var items = itemStore().items;
@@ -388,7 +364,7 @@ var items = itemStore().items;
 // getById
 itemStore.viewById(123);
 
-var state = itemStore.getState();
+var state = itemStore();
 
 if (state.item) {
 	// render single item
@@ -419,53 +395,37 @@ Here's how the example from the link above would work with Hoverboard:
 ```javascript
 // Keeps track of which country is selected
 var CountryStore = Hoverboard({
-	init: function () {
-		return { country: null }
-	},
 	update: function (state, selectedCountry) {
-		return { country: selectedCountry };
+		return selectedCountry;
 	}
 });
-CountryStore.init();
 
 // Keeps track of which city is selected
 var CityStore = Hoverboard({
-	init: function () {
-		return { city: null };
-	},
 	update: function (state, selectedCity) {
-		return { city: selectedCity };
+		return selectedCity;
 	}
 });
-CityStore.init();
 
 // listen to the CountryStore
-CountryStore(function (countryState) {
+CountryStore(function (country) {
     // Select the default city for the new country
-    if (countryState.country && CityStore.getState().city === null) {
-		CityStore.update(getDefaultCityForCountry(countryState.country));
+    if (country && CityStore() === undefined) {
+		CityStore.update(getDefaultCityForCountry(country));
 	}
 });
 
 // Keeps track of the base flight price of the selected city
 var FlightPriceStore = Hoverboard({
-	init: function () {
-		return { price: null }
-	},
 	updatePrice: function (state, country, city) {
-		if (country && city) {
-			return {
-				price: getFlightPriceStore(country, city)
-			};
-		}
+		return getFlightPriceStore(country, city);
 	}
 });
-FlightPriceStore.init();
 
 // called when either country or city change
 function updateFlightPrice() {
-	var country = CountryStore().country;
-	var city = CityStore().city;
+	var country = CountryStore();
+	var city = CityStore();
 
 	FlightPriceStore.updatePrice(country, city);
 }
@@ -493,7 +453,7 @@ Hoverboard follows [semver versioning](http://semver.org/). So you can be sure t
 
 ## Testing
 
-Clone the GitHub repository, run `npm install`, and then run `mocha` to run the tests. Hoverboard has 100% test coverage.
+Clone the GitHub repository, run `npm install`, and then run `npm test` to run the tests. Hoverboard has 100% test coverage.
 
 
 ## Contributing
@@ -526,5 +486,3 @@ MIT
 [david-dm-image]:https://david-dm.org/jesseskinner/hoverboard.svg
 [david-dm-dev-url]:https://david-dm.org/jesseskinner/hoverboard#info=devDependencies
 [david-dm-dev-image]:https://david-dm.org/jesseskinner/hoverboard/dev-status.svg
-[bower-url]:http://badge.fury.io/bo/hoverboard-flux
-[bower-image]: https://badge.fury.io/bo/hoverboard-flux.svg

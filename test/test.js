@@ -64,6 +64,30 @@ describe('hoverboard', function () {
 
 			expect(obj).to.be.empty;
 		});
+
+		it('should allow initial state to be provided', function () {
+			var store = Hoverboard({}, 123);
+
+			expect(store()).to.equal(123);
+		});
+
+		it('should allow initial state to be undefined', function () {
+			var store = Hoverboard({});
+
+			expect(store()).to.be.undefined;
+		});
+
+		it('should allow initial state to be an object', function () {
+			var store = Hoverboard({}, {abc:123});
+
+			expect(store()).to.deep.equal({abc:123});
+		});
+
+		it('should allow initial state to be an array', function () {
+			var store = Hoverboard({}, [123]);
+
+			expect(store()).to.deep.equal([123]);
+		});
 	});
 
 	describe('#state', function () {
@@ -221,7 +245,7 @@ describe('hoverboard', function () {
 
 	});
 
-	describe('#getState(function)', function () {
+	describe('#(function)', function () {
 
 		it('should allow state listeners on stores', function (done) {
 			var store = Hoverboard({
@@ -252,7 +276,7 @@ describe('hoverboard', function () {
 					}
 				});
 
-			store.getState(function (state) {
+			store(function (state) {
 				// this should be called
 				if (state === 1) {
 					done();
@@ -278,7 +302,7 @@ describe('hoverboard', function () {
 
 				success = false,
 
-				unsubscribe = store.getState(function (state) {
+				unsubscribe = store(function (state) {
 					if (state === 1) {
 						unsubscribe();
 					}
@@ -577,8 +601,6 @@ describe('hoverboard', function () {
 			});
 
 			expect(composed.action(123)).to.equal(246);
-
-			expect(composed).to.equal(composed.getState);
 		});
 
 		it('should pass-through stores in object structure', function () {
