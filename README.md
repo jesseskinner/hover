@@ -410,29 +410,21 @@ var CityStore = Hoverboard({
 // listen to the CountryStore
 CountryStore(function (country) {
     // Select the default city for the new country
-    if (country && CityStore() === undefined) {
+    if (country) {
 		CityStore.update(getDefaultCityForCountry(country));
 	}
 });
 
 // Keeps track of the base flight price of the selected city
-var FlightPriceStore = Hoverboard({
-	updatePrice: function (state, country, city) {
-		return getFlightPriceStore(country, city);
-	}
+var FlightPriceStore = Hoverboard.compose({
+	// listen to changes from both the country and city stores
+	country: CountryStore,
+	city: CityStore
+
+}, function (state) {
+	// called when either country or city change
+	return getFlightPrice(state.country, state.city);
 });
-
-// called when either country or city change
-function updateFlightPrice() {
-	var country = CountryStore();
-	var city = CityStore();
-
-	FlightPriceStore.updatePrice(country, city);
-}
-
-// listen to changes from both the country and city stores
-CountryStore(updateFlightPrice);
-CityStore(updateFlightPrice);
 
 // When a user changes the selected city, we call an action:
 CityStore.update('paris');
