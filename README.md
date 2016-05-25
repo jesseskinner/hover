@@ -2,7 +2,9 @@
     <img height="300" width="300" src="https://tfotw.com/hover-300px.png" title="Hover"><br>
 	A very lightweight data store<br>
 	with action reducers<br>
-	and state change listeners.
+	and state change listeners.<br>
+	<br>
+	<br>
 </p>
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Coverage Status][coveralls-image]][coveralls-url] [![Dependency status][david-dm-image]][david-dm-url] [![Dev Dependency status][david-dm-dev-image]][david-dm-dev-url]
