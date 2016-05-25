@@ -1,6 +1,9 @@
-# Hover
-
-Hover is a very lightweight (anti-gravity?) data store with actions and a state change listener.
+<p style="text-align: center; margin-bottom: 5em">
+    <img height="300" width="300" style="image-rendering:pixelated" src="https://tfotw.com/hover.png" title="Hover"><br>
+	A very lightweight data store<br>
+	with action reducers<br>
+	and state change listeners.
+</p>
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url]
 
