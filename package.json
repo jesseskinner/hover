@@ -1,7 +1,7 @@
 {
-  "name": "hoverboard",
-  "version": "3.0.0-alpha.3",
-  "description": "Very lightweight (anti-gravity?) Flux implementation.",
+  "name": "hover",
+  "version": "3.0.0-alpha.4",
+  "description": "Very lightweight (anti-gravity?) data store, with action reducers and state change listeners.",
   "main": "src/index.js",
   "directories": {
     "test": "test"
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jesseskinner/hoverboard.git"
+    "url": "https://github.com/jesseskinner/hover.git"
   },
   "keywords": [
     "flux",
@@ -24,9 +24,9 @@
   "author": "Jesse Skinner <jesse@thefutureoftheweb.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jesseskinner/hoverboard/issues"
+    "url": "https://github.com/jesseskinner/hover/issues"
   },
-  "homepage": "https://github.com/jesseskinner/hoverboard",
+  "homepage": "https://github.com/jesseskinner/hover",
   "devDependencies": {
     "chai": "^3.5.0",
     "coveralls": "^2.11.9",

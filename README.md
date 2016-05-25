@@ -1,6 +1,6 @@
-# Hoverboard
+# Hover
 
-A very lightweight (anti-gravity?) data model and [Flux](https://facebook.github.io/flux/) store with actions and a state change listener.
+Hover is a very lightweight (anti-gravity?) data store with actions and a state change listener.
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url]
 
@@ -9,82 +9,110 @@ A very lightweight (anti-gravity?) data model and [Flux](https://facebook.github
 
 ## Installation
 
-You can use npm to install Hoverboard, or [download the raw file here](https://raw.githubusercontent.com/jesseskinner/hoverboard/master/src/index.js).
+You can use npm to install Hover, or [download the raw file here](https://raw.githubusercontent.com/jesseskinner/hover/master/src/index.js).
 
 For more information, check out the [Concept](#concept), [Usage](#usage), [Documentation](#documentation) and [FAQ](#faq) below.
 
 
 ```
-npm install hoverboard
+npm install hover
+
+import Hover from 'hover'
 ```
 
 ## Concept
 
-Hoverboard greatly simplifies [Flux](https://facebook.github.io/flux/) while staying true to the concept.
-
-The basic usage of Hoverboard is:
+The basic usage of Hover is:
 
 ```javascript
-var store = Hoverboard({
-	action: function (state, value) {
-		return { value: value };
+// in store.js
+import Hover from 'hover'
+
+const actions = {
+	increment: (state, amount) => state + amount
+}
+
+const initialState = 0
+
+export default Hover(actions, initialState)
+
+// elsewhere
+import store from './store'
+const state = store.increment(2)
+```
+
+You can easily subscribe to state changes with Hover stores. You can pass a callback to the store. Your callback will be called immediately at first, and again whenever the state changes. Here's an example using vanilla DOM scripting to update the page:
+
+```javascript
+function renderUserProfile (user) {
+	if (user) {
+		const root = document.getElementById('user-profile'),
+			avatar = root.querySelector('.avatar'),
+			name = root.querySelector('.name')
+
+		// use the avatar url as an image source
+		avatar.src = user.avatar
+
+		// erase previous contents of name
+		while (name.firstChild) {
+			name.removeChild(name.firstChild)
+		}
+
+		// add name as a text node
+		name.appendChild(document.createTextNode(user.name))
 	}
-});
+}
 
-store.action("Hello, World!");
+userStore(renderUserProfile)
 ```
 
-Hoverboard makes it incredibly easy to subscribe to state changes. You can add a listener by calling the model as a function. Your callback will be called immediately at first, and again whenever the state changes. This works great with React.js, because you can easily re-render your component whenever the store changes its state.
+Here's an example rendering a React component:
 
 ```javascript
-store(function (props) {
+function renderUserProfile (user) {
 	ReactDOM.render(
-		<UserProfile {...props} actions={store} />,
+		<UserProfile user={user} actions={userStore} />,
 		document.getElementById('user-profile')
-	);
-});
+	)
+}
+
+userStore(renderUserProfile)
 ```
 
-Hoverboard was inspired by other Flux implementations, like [Redux](https://github.com/reakt/redux), [Alt](https://github.com/goatslacker/alt) and [Reflux](https://github.com/spoike/refluxjs). Those versions are very lightweight, but Hoverboard is practically weightless.
 
 ## Usage
 
-Here's how you might use Hoverboard to keep track of clicks with a ClickCounter.
+Here's how you might use Hover to keep track of clicks with a ClickCounter.
 
 ```javascript
-var ClickCounter = Hoverboard({
-	click: function(state, text) {
-		return {
-			value: state.value + 1,
-			log: state.log.concat(text)
-		};
-	},
-	reset: function() {
-		// go back to defaults
-		return {
-			value: 0,
-			log: []
-		};
-	}
-});
+const actions = {
+	click: (state, text) => ({
+		value: state.value + 1,
+		log: state.log.concat(text)
+	}),
 
-// initialize with defaults
-ClickCounter.reset();
+	// go back to defaults
+	reset: () => initialState
+}
+
+const initialState = 0
+
+const ClickCounter = Hover(actions, initialState)
 
 // listen to changes to the state
-var unsubscribe = ClickCounter(function (clickState) {
-	document.write(JSON.stringify(clickState) + "<br>");
-});
+const unsubscribe = ClickCounter(clickState =>
+	document.write(JSON.stringify(clickState) + "<br>"
+)
 
-ClickCounter.click('first');
-ClickCounter.click('second');
+ClickCounter.click('first')
+ClickCounter.click('second')
 
-// reset back to empty state
-ClickCounter.reset();
+// reset back to zero
+ClickCounter.reset()
 
-unsubscribe();
+unsubscribe()
 
-ClickCounter.click("This won't show up");
+ClickCounter.click("This won't show up")
 ```
 
 If you run this example, you'll see this:
@@ -96,17 +124,17 @@ If you run this example, you'll see this:
 {"value":0,"log":[]}
 ```
 
-To see how Hoverboard fits into a larger app, with ReactJS and a router, check out the [Hoverboard TodoMVC](http://github.com/jesseskinner/hoverboard-todomvc/).
+To see how Hover can fit into a larger app, with React and a router, check out the [Hover TodoMVC](http://github.com/jesseskinner/hover-todomvc/).
 
 
 ## Documentation
 
-Hoverboard is a function that takes an actions object and returns a store object.
+Hover is a function that takes an actions object and returns a store object.
 
 ### Syntax
 
 ```javascript
-store = Hoverboard(actions[, initialState]);
+store = Hover(actions[, initialState])
 ```
 
 #### `actions` object
@@ -116,41 +144,34 @@ store = Hoverboard(actions[, initialState]);
 - Note that your actions will automatically receive `state` as the first parameter, followed by the arguments you pass in when calling it.
 
 	```javascript
-	store = Hoverboard({
-		hideItem: function(state, id) {
-			var items = state.items;
+	// store is synchronous, actions are setters
+	store = Hover({
+		items: (state, items) => ({ items }),
+		error: (state, error) => ({ error })
+	}, {})
 
-			items[id].hidden = true;
-
-			// return the new state
-			return { items: items };
-		},
-
-		items: function(state, items) {
-			return { items: items };
-		},
-
-		error: function(state, error) {
-			return { error: error };
-		}
-	});
-
-	// you could load the store contents asynchronously and pass in as action
-	api.getItems(function (error, items) {
+	// load data asynchronously and call actions to change the state
+	api.getItems((error, items) => {
 		if (error) {
-			return store.error(error);
+			return store.error(error)
 		}
 
-		store.items(items);
-	});
+		store.items(items)
+	})
 
-	// later
-	store.hideItem("abc");
+	// listen to the state, and respond to it accordingly
+	store(state => {
+		if (state.items) {
+			renderItems(state.items)
+		} else if (state.error) {
+			alert('Error loading items!')
+		}
+	})
 	```
 
 #### Return value
 
-`Hoverboard(actions[, initialState])` will return a `store` object.
+`store = Hover(actions[, initialState])`
 
 ##### `store` object methods
 
@@ -167,65 +188,56 @@ store = Hoverboard(actions[, initialState]);
     - Returns an unsubscribe function. Call it to stop listening to the state.
 
 		```javascript
-		unsubscribe = store(function(state) {
-			alert(state.value);
-		});
+		unsubscribe = store(state => console.log(state))
 
         // stop listening
-        unsubscribe();
+        unsubscribe()
 		```
 
-- `store.someAction(arg1, arg2, ..., argN)`
-
+- `state = store.action(arg0, arg1, ..., argN)`
 	- Calls an action handler on the store, passing through any arguments.
 
 		```javascript
-		store = Hoverboard({
-			add: function(state, number) {
-				return (state || 0) + number;
-			}
-		});
+		store = Hover({
+			add: (state, number) => state + number
+		}, 0)
 
-		store.add(5);
-		store.add(4);
-
-		result = store(); // returns 9
+		result = store() // returns 0
+		result = store.add(5) // returns 5
+		result = store.add(4) // returns 9
+		result = store() // returns 9
 		```
 
-#### Hoverboard.compose
+#### Hover.compose
 
-`Hoverboard.compose` takes a definition and creates a store,
+`Hover.compose` takes a definition and creates a store,
 subscribing to any store members of the definition.
 
-`Hoverboard.compose` can take static variables, objects or arrays.
+`Hover.compose` can take static variables, objects or arrays.
 
 ```javascript
 // create two stores
-var scoreStore = Hoverboard({
-    add: function (state, score) {
-        return state + score;
-    }
-}, 0);
-var healthStore = Hoverboard({
-    hit: function (state, amount) {
-        return state - amount;
-    }
-}, 100);
+const scoreStore = Hover({
+    add: (state, score) => state + score
+}, 0)
+const healthStore = Hover({
+    hit: (state, amount) => state - amount
+}, 100)
 
 // compose the two stores into a single store
-var gameStore = Hoverboard.compose({
+const gameStore = Hover.compose({
     score: scoreStore,
 
     // create an anonymous store to nest objects
-    character: Hoverboard.compose({
+    character: Hover.compose({
         health: healthStore
     })
-});
+})
 
 // stores and actions can be accessed with the same structure
-gameStore.score.add(2);
+gameStore.score.add(2)
 
-gameStore.character.health.hit(1);
+gameStore.character.health.hit(1)
 ```
 
 You can also pass zero or more translate functions after your compose definition,
@@ -235,224 +247,103 @@ These translate functions will receive a `state` argument, and must return the r
 
 ```javascript
 // create stores to contain the active and completed todos
-var activeTodoStore = Hoverboard.compose(todoStore, function (todos) {
-    return _.filter(todos, { completed: false });
-});
+const activeTodoStore = Hover.compose(todoStore, todos =>
+    todos.filter(todo => todo.completed === false)
+)
 
-var completedTodoStore = Hoverboard.compose(todoStore, function (todos) {
-    return _.filter(todos, { completed: true });
-});
+const completedTodoStore = Hover.compose(todoStore, todos =>
+    todos.filter(todo => todo.completed === true)
+})
 ```
 
 ## FAQ
 
-*Q: Is this really Flux?*
-
-Yes. Flux requires that data flows in one direction, and Hoverboard enforces that.
-
-When you call an action on a store, you can't get back a return value. The only way to get
-data out of a store is by registering a change listener. So this ensures that data flows following
-the `Action -> Dispatcher -> Store -> View` flow that is central to Flux.
-
----
-
-*Q: Does Hoverboard depend on React.js? Or can I use ____ instead?*
-
-You can use Hoverboard with any framework or library. It works really well with
-React, just because it's simple to pass an entire state object as props to a
-component, and have React figure out how to update the DOM efficiently.
-
-That said, Hoverboard can still work with any other method of programming, but you
-might have to do more work to decide how to update your views when the state changes.
-
-As other frameworks start adopting React's strategy of updating the DOM, Hoverboard
-will be a good fit to use with those frameworks as well.
-
-Check out [virtual-dom](https://github.com/Matt-Esch/virtual-dom) as an alternative
-to using React in your projects.
-
----
-
-*Q: Is Hoverboard universal? Can I use it on a node.js server?*
-
-Yes, it can work on the server. You can add listeners to stores, and render the
-page once you have everything you need from the stores. To be safe, you should probably unsubscribe from the store listeners once you've rendered the page, so you don't render it twice.
-
-If you want to be able to "re-hydrate" your stores after rendering on the server, you can
-pass the initial state as the second parameter when creating your `Hoverboard` store.
-
----
-
-*Q: How does Hoverboard handle asynchronous loading of data from an API?*
+*Q: How does Hover handle asynchronous loading of data from an API?*
 
 There are three ways to achieve this. One way is to load the API outside of the store, and call actions to pass in the loading state, data and/or error as it arrives:
 
 ```javascript
-var store = Hoverboard({
-	loading: function(state, isLoading) {
-		return { isLoading: isLoading };
-	},
-	data: function(state, data) {
-		return { data: data };
-	},
-	error: function(state, error) {
-		return { error: error };
-	}
-});
+const store = Hover({
+	loading: (state, isLoading) => ({ isLoading }),
+	data: (state, data) => ({ data }),
+	error: (state, error) => ({ error })
+})
 
-store.loading(true);
+store.loading(true)
 
-getDataFromAPI(params, function(error, data){
-	store.loading(false);
-
+getDataFromAPI(params, (error, data) => {
 	if (error) {
-		return store.error(error);
+		return store.error(error)
 	}
 
-	store.data(data);
-});
+	store.data(data)
+})
 ```
 
-Another way is to call the API from within your store itself.
+Another way is to make API calls from inside your actions.
 
 ```javascript
-var store = Hoverboard({
-	load: function (state, params) {
-		getDataFromAPI(params, function (error, data) {
-			store.done(error, data);
-		});
+const store = Hover({
+	load: (state, params) => {
+		getDataFromAPI(params, (error, data) =>
+			store.done(error, data)
+		)
 
-		return { isLoading: true, error: null, data: null };
+		return { isLoading: true, error: null, data: null }
 	},
-	done: function(state, error, data) {
-		return { isLoading: false, error: error, data: data };
-	}
-});
+	done: (state, error, data) => (
+		{ isLoading: false, error, data }
+	)
+})
 
-store.load(params);
+store.load(params)
 ```
 
 ---
 
-*Q: If Hoverboard stores only have a single getter, how can I have both getAll and getById?*
+*Q: If Hover stores only have a single getter, how can I have something like getById?*
 
-You can use actions and state. If you have a list of items, and want to view a single item,
-then you might want to have an items property that contains the list, and an item property
-that contains the item you need. Something like this:
+If you have access to a list of items in the state, you can write code to search through the list. You could even have a function like this as a property of the store, before you export it, eg.
 
 ```javascript
-var initialState = { abc: 123, /* etc... */ };
+import Hover from 'hover'
 
-var itemStore = Hoverboard({
-	// update item whenever ID changes
-	viewById: function (state, id) {
-		return {
-			item: state.items[id],
-			items: state.items
-		};
-	},
-	viewAll: function (state) {
-		return {
-			items: state.items
-		}
-	}
-}, initialState);
+const initialState = [{ id: 1, name: 'one' }, /* etc... */ }
+
+const itemStore = Hover({
+	add: (list, item) => list.concat(item)
+}, initialState)
+
+// add a helper function to the store
+itemStore.getById = id =>
+	list.filter(item => item.id === id).pop()
 
 // getAll
-var items = itemStore().items;
+const items = itemStore()
 
-// getById
-itemStore.viewById(123);
+// look up a specific item
+const item = itemStore.getById(5)
 
-var state = itemStore();
-
-if (state.item) {
-	// render single item
-} else {
-	// render list of items
-}
 ```
 
 ---
-
-*Q: Hold on. There's no global dispatcher and there's no `waitFor`, so are you sure it's really Flux?*
-
-Yes. Ultimately Hoverboard acts as the dispatcher. Every action calls one specific action
-handler in one store, so the dispatching is simple. Like Facebook's Dispatcher, Hoverboard
-ensures that only one action is handled at a time, and won't allow action handlers to
-pass data back to the action caller.
-
-`waitFor` is a mechanism that Facebook's Dispatcher provides to help multiple stores
-coordinate their response to a particular action. In Hoverboard, a store doesn't need
-to know about which actions were called, or if some asynchronous response triggered
-a change. Whenever one store changes, the other can update itself immediately.
-
-How would you avoid using `waitFor` in Hoverboard? Let's compare using an example from the
-[Facebook Flux Dispatcher tutorial](http://facebook.github.io/flux/docs/dispatcher.html):
-
-Here's how the example from the link above would work with Hoverboard:
-
-```javascript
-// Keeps track of which country is selected
-var CountryStore = Hoverboard({
-	update: function (state, selectedCountry) {
-		return selectedCountry;
-	}
-});
-
-// Keeps track of which city is selected
-var CityStore = Hoverboard({
-	update: function (state, selectedCity) {
-		return selectedCity;
-	}
-});
-
-// listen to the CountryStore
-CountryStore(function (country) {
-    // Select the default city for the new country
-    if (country) {
-		CityStore.update(getDefaultCityForCountry(country));
-	}
-});
-
-// Keeps track of the base flight price of the selected city
-var FlightPriceStore = Hoverboard.compose({
-	// listen to changes from both the country and city stores
-	country: CountryStore,
-	city: CityStore
-
-}, function (state) {
-	// called when either country or city change
-	return getFlightPrice(state.country, state.city);
-});
-
-// When a user changes the selected city, we call an action:
-CityStore.update('paris');
-
-// When the user selects a country, we call an action:
-CountryStore.update('australia');
-```
-
-It's pretty much the same code, just written a different way. In both examples,
-the FlightPriceStore waits for the CountryStore and CityStore to change, and the flow
-of data moves through the same logic and processes.
 
 
 ## Versioning
 
-Hoverboard follows [semver versioning](http://semver.org/). So you can be sure that the API won't change until the next major version.
+Hover follows [semver versioning](http://semver.org/). So you can be sure that the API won't change until the next major version.
 
 
 ## Testing
 
-Clone the GitHub repository, run `npm install`, and then run `npm test` to run the tests. Hoverboard has 100% test coverage.
+Clone the GitHub repository, run `npm install`, and then run `npm test` to run the tests. Hover has 100% test coverage.
 
 
 ## Contributing
 
-Feel free to [fork this repository on GitHub](https://github.com/jesseskinner/hoverboard/fork), make some changes, and make a [Pull Request](https://github.com/jesseskinner/hoverboard/pulls).
+Feel free to [fork this repository on GitHub](https://github.com/jesseskinner/hover/fork), make some changes, and make a [Pull Request](https://github.com/jesseskinner/hover/pulls).
 
-You can also [create an issue](https://github.com/jesseskinner/hoverboard/issues) if you find a bug or want to request a feature.
+You can also [create an issue](https://github.com/jesseskinner/hover/issues) if you find a bug or want to request a feature.
 
 Any comments and questions are very much welcome as well.
 
@@ -466,15 +357,15 @@ Jesse Skinner [@JesseSkinner](http://twitter.com/JesseSkinner)
 
 MIT
 
-[coveralls-image]: https://coveralls.io/repos/jesseskinner/hoverboard/badge.png
-[coveralls-url]: https://coveralls.io/r/jesseskinner/hoverboard
+[coveralls-image]: https://coveralls.io/repos/jesseskinner/hover/badge.png
+[coveralls-url]: https://coveralls.io/r/jesseskinner/hover
 
-[npm-url]: https://npmjs.org/package/hoverboard
-[downloads-image]: http://img.shields.io/npm/dm/hoverboard.svg
-[npm-image]: http://img.shields.io/npm/v/hoverboard.svg
-[travis-url]: https://travis-ci.org/jesseskinner/hoverboard
-[travis-image]: http://img.shields.io/travis/jesseskinner/hoverboard.svg
-[david-dm-url]:https://david-dm.org/jesseskinner/hoverboard
-[david-dm-image]:https://david-dm.org/jesseskinner/hoverboard.svg
-[david-dm-dev-url]:https://david-dm.org/jesseskinner/hoverboard#info=devDependencies
-[david-dm-dev-image]:https://david-dm.org/jesseskinner/hoverboard/dev-status.svg
+[npm-url]: https://npmjs.org/package/hover
+[downloads-image]: http://img.shields.io/npm/dm/hover.svg
+[npm-image]: http://img.shields.io/npm/v/hover.svg
+[travis-url]: https://travis-ci.org/jesseskinner/hover
+[travis-image]: http://img.shields.io/travis/jesseskinner/hover.svg
+[david-dm-url]:https://david-dm.org/jesseskinner/hover
+[david-dm-image]:https://david-dm.org/jesseskinner/hover.svg
+[david-dm-dev-url]:https://david-dm.org/jesseskinner/hover#info=devDependencies
+[david-dm-dev-image]:https://david-dm.org/jesseskinner/hover/dev-status.svg

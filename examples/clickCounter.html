@@ -2,14 +2,38 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>Hoverboard Example</title>
+	<title>Hover Example</title>
 </head>
 <body>
 
 <script src="../src/index.js"></script>
 
 <script>
-	var ClickCounter = Hoverboard({
+	// here's a technique for logging actions called on a Hover store
+	function log(store, callback) {
+		function wrapper(callback) {
+			return store(callback);
+		}
+
+		function wrap(action) {
+			return function(){
+				var args = [].slice.call(arguments, 0),
+					state = store[action].call(store, args);
+
+				callback(action, args, state);
+
+				return state;
+			};
+		}
+
+		for (var k in store) {
+			wrapper[k] = wrap(k);
+		}
+
+		return wrapper;
+	}
+
+	var ClickCounter = Hover({
 		reset: function () {
 			return {
 				value: 0,
@@ -23,6 +47,10 @@
 			};
 		}
 	});
+
+	ClickCounter = log(ClickCounter, function(action, args, state) {
+		console.log(action, args, state)
+	})
 
 	ClickCounter.reset();
 

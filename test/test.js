@@ -1,17 +1,17 @@
 var chai = require('chai');
 var expect = chai.expect;
-var Hoverboard = require('../src/index');
+var Hover = require('../src/index');
 
-describe('hoverboard', function () {
+describe('hover', function () {
 
 	describe('#init', function () {
 
 		it('should return a function when passed an object', function () {
-			expect(Hoverboard({})).to.be.a('function');
+			expect(Hover({})).to.be.a('function');
 		});
 
 		it('should create actions from an object', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				something: function(){}
 			});
 
@@ -22,7 +22,7 @@ describe('hoverboard', function () {
 			var myClass = function(){};
 			myClass.prototype.something = function(){};
 
-			var store = Hoverboard(new myClass);
+			var store = Hover(new myClass);
 
 			expect(store.something).to.be.a('function');
 		});
@@ -34,7 +34,7 @@ describe('hoverboard', function () {
 			var ChildClass = function(){};
 			ChildClass.prototype = new ParentClass();
 
-			var store = Hoverboard(new ChildClass);
+			var store = Hover(new ChildClass);
 
 			expect(store.something).to.be.a('function');
 		});
@@ -46,45 +46,45 @@ describe('hoverboard', function () {
 				};
 			};
 
-			var store = Hoverboard(new Module);
+			var store = Hover(new Module);
 
 			expect(store.test).to.be.a('function');
 		});
 
 		it('should not add anything to the original prototype', function () {
 			var myClass = function(){};
-			var store = Hoverboard(myClass);
+			var store = Hover(myClass);
 
 			expect(myClass.prototype).to.be.empty;
 		});
 
 		it('should not add anything to the original object', function () {
 			var obj = {};
-			var store = Hoverboard(obj);
+			var store = Hover(obj);
 
 			expect(obj).to.be.empty;
 		});
 
 		it('should allow initial state to be provided', function () {
-			var store = Hoverboard({}, 123);
+			var store = Hover({}, 123);
 
 			expect(store()).to.equal(123);
 		});
 
 		it('should allow initial state to be undefined', function () {
-			var store = Hoverboard({});
+			var store = Hover({});
 
 			expect(store()).to.be.undefined;
 		});
 
 		it('should allow initial state to be an object', function () {
-			var store = Hoverboard({}, {abc:123});
+			var store = Hover({}, {abc:123});
 
 			expect(store()).to.deep.equal({abc:123});
 		});
 
 		it('should allow initial state to be an array', function () {
-			var store = Hoverboard({}, [123]);
+			var store = Hover({}, [123]);
 
 			expect(store()).to.deep.equal([123]);
 		});
@@ -92,11 +92,11 @@ describe('hoverboard', function () {
 
 	describe('#state', function () {
 		it('should return undefined by default', function () {
-			expect(Hoverboard({})()).to.be.undefined;
+			expect(Hover({})()).to.be.undefined;
 		});
 
 		it('should not discard mutations between action handlers', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				foo: function (state) {
 					return { test: true };
 				},
@@ -113,7 +113,7 @@ describe('hoverboard', function () {
 			var myClass = function(){};
 			var instance = new myClass();
 
-			var store = Hoverboard({
+			var store = Hover({
 				reset: function () {
 					return instance;
 				},
@@ -129,7 +129,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should return a different object after each action call', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				reset: function () {
 					return { value: 0 };
 				},
@@ -154,7 +154,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should not prevent mutation of state passed to action', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				init: function () {
 					return { value: 'yay' };
 				},
@@ -171,7 +171,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should not prevent mutation of state passed to subscriber', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				action: function () {
 					return { value: 'yay' };
 				}
@@ -186,21 +186,38 @@ describe('hoverboard', function () {
 			expect(store().value).to.equal('boo');
 		});
 
-		it('should not be able to cause infinite loop', function () {
-			var store = Hoverboard({
+		it('should allow actions to call other actions, but only notify at the end', function () {
+			var store = Hover({
 				action: function () {
-					store.action();
+					var five = store.otherAction(5);
+
+					expect(five).to.equal(5);
+
+					return 'action';
+				},
+				otherAction: function (state, num) {
+					return num;
 				}
 			});
 
-			expect(store.action).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
+			var count = 0;
+
+			store(function (state) {
+				if (count++ === 1) {
+					expect(state).to.equal('action');
+				}
+				expect(state).to.not.equal('other');
+			});
+
+			expect(store.action()).to.equal('action');
+
 		});
 	});
 
 	describe('#action()', function () {
 
 		it('should call an action handler', function (done) {
-			var store = Hoverboard({
+			var store = Hover({
 				action: function () {
 					done();
 				}
@@ -210,7 +227,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should still work with zero, one, two, three or four arguments', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				action: function (state, arg1, arg2, arg3, arg4) {
 					return { len: arguments.length - 1 };
 				}
@@ -233,7 +250,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should return state', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				add: function (state, num) {
 					return (state || 0) + num;
 				}
@@ -248,7 +265,7 @@ describe('hoverboard', function () {
 	describe('#(function)', function () {
 
 		it('should allow state listeners on stores', function (done) {
-			var store = Hoverboard({
+			var store = Hover({
 				update: function (state, newState) {
 					return newState;
 				}
@@ -264,7 +281,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should return an unsubscribe function', function (done) {
-			var store = Hoverboard({
+			var store = Hover({
 					update: function (state, data) {
 						return data;
 					}
@@ -294,7 +311,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should unsubscribe without breaking other listeners', function () {
-			var store = Hoverboard({
+			var store = Hover({
 					update: function (state, data) {
 						return data;
 					}
@@ -319,32 +336,18 @@ describe('hoverboard', function () {
 
 			expect(success).to.be.true;
 		});
-
-		it('should prevent actions to be called from listeners', function () {
-			var store = Hoverboard({
-				foo: function () {
-					return 1;
-				}
-			});
-
-			expect(function () {
-				store(function () {
-					store.foo();
-				});
-			}).to.throw(Error, /^Hoverboard: Cannot call action in the middle of an action$/);
-		});
 	});
 
-	describe('Hoverboard.compose', function () {
+	describe('Hover.compose', function () {
 
 		it('should take in static variables', function () {
-			var store = Hoverboard.compose(123);
+			var store = Hover.compose(123);
 
 			expect(store()).to.equal(123);
 		});
 
 		it('should take in functions', function () {
-			var store = Hoverboard.compose(function (setState) {
+			var store = Hover.compose(function (setState) {
 				setState(456);
 			});
 
@@ -353,7 +356,7 @@ describe('hoverboard', function () {
 
 		it('should pass the state in to transforms when using functions', function () {
 			var lastState;
-			var store = Hoverboard.compose(function (setState) {
+			var store = Hover.compose(function (setState) {
 				setState({ a: 1 });
 				setState({ b: 2 });
 			}, function (state) {
@@ -366,13 +369,13 @@ describe('hoverboard', function () {
 		});
 
 		it('should take in a store', function () {
-			var storeA = Hoverboard({
+			var storeA = Hover({
 				init: function (state, newState) {
 					return newState;
 				}
 			});
 
-			var storeB = Hoverboard.compose(storeA);
+			var storeB = Hover.compose(storeA);
 
 			expect(storeB()).to.be.undefined;
 
@@ -382,17 +385,17 @@ describe('hoverboard', function () {
 		});
 
 		it('should take in an array of stores', function () {
-			var storeA = Hoverboard({
+			var storeA = Hover({
 				init: function (state, newState) {
 					return newState;
 				}
 			});
-			var storeB = Hoverboard({
+			var storeB = Hover({
 				init: function (state, newState) {
 					return newState;
 				}
 			});
-			var mainStore = Hoverboard.compose([
+			var mainStore = Hover.compose([
 				storeA, storeB
 			]);
 
@@ -403,30 +406,30 @@ describe('hoverboard', function () {
 		});
 
 		it('should take in an empty array', function () {
-			var store = Hoverboard.compose([]);
+			var store = Hover.compose([]);
 
 			expect(store().length).to.equal(0);
 			expect(store() instanceof Array).to.be.true;
 		});
 
 		it('should take in an array of static variables', function () {
-			var store = Hoverboard.compose([ 123, 456 ]);
+			var store = Hover.compose([ 123, 456 ]);
 
 			expect(store().join(',')).to.equal('123,456');
 		});
 
 		it('should take in an object of stores', function () {
-			var storeA = Hoverboard({
+			var storeA = Hover({
 				init: function (state, newState) {
 					return newState;
 				}
 			});
-			var storeB = Hoverboard({
+			var storeB = Hover({
 				init: function (state, newState) {
 					return newState;
 				}
 			});
-			var mainStore = Hoverboard.compose({
+			var mainStore = Hover.compose({
 				a: storeA,
 				b: storeB
 			});
@@ -439,7 +442,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should take in an object of functions', function () {
-			var store = Hoverboard.compose({
+			var store = Hover.compose({
 				a: function (setState) {
 					setState(123);
 				},
@@ -455,17 +458,17 @@ describe('hoverboard', function () {
 		});
 
 		it('should be able to do all of this at once', function () {
-			var storeA = Hoverboard({
+			var storeA = Hover({
 				init: function (state, newState) {
 					return newState;
 				}
 			});
-			var storeB = Hoverboard({
+			var storeB = Hover({
 				init: function (state, newState) {
 					return newState;
 				}
 			});
-			var mainStore = Hoverboard.compose({
+			var mainStore = Hover.compose({
 				a: function (setState) {
 					setState(123);
 				},
@@ -475,7 +478,7 @@ describe('hoverboard', function () {
 				storeA: storeA,
 				storeB: storeB,
 				staticVar: 'hello',
-				arr: Hoverboard.compose([
+				arr: Hover.compose([
 					storeA,
 					storeB,
 					function (setState) {
@@ -500,12 +503,12 @@ describe('hoverboard', function () {
 		});
 
 		it('should allow zero or more translate functions', function () {
-			var storeA = Hoverboard({
+			var storeA = Hover({
 				init: function (state, newState) {
 					return newState;
 				}
 			});
-			var storeB = Hoverboard.compose(storeA, function (state) {
+			var storeB = Hover.compose(storeA, function (state) {
 				if (state) {
 					state.a = 100;
 				}
@@ -527,7 +530,7 @@ describe('hoverboard', function () {
 
 		it('should resolve functions to undefined', function () {
 			var setState;
-			var store = Hoverboard.compose({
+			var store = Hover.compose({
 				fn: function (s) {
 					setState = s;
 				}
@@ -541,7 +544,7 @@ describe('hoverboard', function () {
 		});
 
 		it('should resolve functions to undefined in translate function too', function () {
-			var store = Hoverboard.compose({
+			var store = Hover.compose({
 				fn: function () {},
 				fn2: function (){}
 			}, function (state) {
@@ -556,7 +559,7 @@ describe('hoverboard', function () {
 		it('should use the definition for arrays as the state container', function () {
 			var fn = function (setState){ setState(1) },
 				defArray = [fn],
-				storeArray = Hoverboard.compose(defArray);
+				storeArray = Hover.compose(defArray);
 
 			expect(defArray[0]).to.equal(1);
 		});
@@ -564,14 +567,14 @@ describe('hoverboard', function () {
 		it('should use the definition for plain objects as the state container', function () {
 			var fn = function (setState){ setState(2) },
 				defObject = { a: fn },
-				storeObject = Hoverboard.compose(defObject);
+				storeObject = Hover.compose(defObject);
 
 			expect(defObject.a).to.equal(2);
 		});
 
 		it('should not leak state through translations', function () {
-			var store = Hoverboard.compose({
-				a: Hoverboard.compose(1)
+			var store = Hover.compose({
+				a: Hover.compose(1)
 			}, function () {
 				return { b: 2 };
 			});
@@ -580,11 +583,11 @@ describe('hoverboard', function () {
 		});
 
 		it('should pass-through actions on simple wrapper', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				action: function(state, newState) { return newState }
 			});
 
-			var composed = Hoverboard.compose(store);
+			var composed = Hover.compose(store);
 
 			composed.action(123);
 
@@ -592,11 +595,11 @@ describe('hoverboard', function () {
 		});
 
 		it('should pass-through actions on translated store', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				action: function(state, newState) { return newState }
 			});
 
-			var composed = Hoverboard.compose(store, function (state) {
+			var composed = Hover.compose(store, function (state) {
 				return state * 2
 			});
 
@@ -604,11 +607,11 @@ describe('hoverboard', function () {
 		});
 
 		it('should pass-through stores in object structure', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				action: function(state, newState) { return newState }
 			});
 
-			var composed = Hoverboard.compose({
+			var composed = Hover.compose({
 				storeA: store,
 				storeB: store,
 				static: 5
@@ -621,11 +624,11 @@ describe('hoverboard', function () {
 		});
 
 		it('should pass-through stores in array structure', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				action: function(state, newState) { return newState }
 			});
 
-			var composed = Hoverboard.compose([
+			var composed = Hover.compose([
 				store,
 				store
 			]);
@@ -636,12 +639,12 @@ describe('hoverboard', function () {
 		});
 
 		it('should pass-through stores in nested structure', function () {
-			var store = Hoverboard({
+			var store = Hover({
 				action: function(state, newState) { return newState }
 			});
 
-			var composed = Hoverboard.compose({
-				things: Hoverboard.compose({
+			var composed = Hover.compose({
+				things: Hover.compose({
 					store: store
 				})
 			});
@@ -651,4 +654,4 @@ describe('hoverboard', function () {
 		});
 	});
 
-}); // hoverboard
+}); // hover

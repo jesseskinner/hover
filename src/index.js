@@ -1,32 +1,6 @@
-var Hoverboard = (function(){
-'use strict';
+var Hover = (function(){
 
-var slice = [].slice;
-
-// lock a function to prevent recursion
-function createLock(errorMessage) {
-	var isLocked = false;
-
-	// ensure callback only executes once at a time
-	return function (callback) {
-		var result;
-
-		if (isLocked) {
-			throw new Error('Hoverboard: ' + errorMessage);
-		}
-
-		isLocked = true;
-
-		try {
-			result = callback();
-		} finally {
-			// whether or not there was an error, we're done here
-			isLocked = false;
-		}
-
-		return result;
-	};
-}
+var slice = [].slice, undefined;
 
 // remove item from array, returning a new array
 function removeFromArray(array, removeItem) {
@@ -44,15 +18,15 @@ function isFunction(fn) {
 	return typeof fn === 'function';
 }
 
-// return the Hoverboard function
+// return the Hover function
 // actions is an iterable of reducers
 // state is undefined by default, but initial state can be provided
-function Hoverboard(actions, state) {
+function Hover(actions, state) {
 	// list of state listeners specific to this store instance
 	var stateListeners = [],
 
-		// returns the current official state. used for actions
-		getState = function (callback) {
+		// this is the store that will be returned
+		store = function (callback) {
 			// passing a function here is a synonym for subscribe
 			if (isFunction(callback)) {
 				// add callback as listener to change event
@@ -75,54 +49,59 @@ function Hoverboard(actions, state) {
 			return state;
 		},
 
-		// ensure only one action is handled at a time
-		actionLock = createLock('Cannot call action in the middle of an action'),
-
 		// create an action for the api that calls an action handler and changes the state
-		createAction = function (action) {
+		createAction = function (reducer) {
 			// return a function that'll be attached to the api
 			return function () {
-				var args = [state].concat(slice.call(arguments, 0)),
+				// convert arguments to a normal array
+				var args = slice.call(arguments, 0),
 
-					// make local copy in case someone unsubscribes during
-					listeners = stateListeners;
+					isOriginalAction = !inAction;
 
-				// prevent a subsequent action being called during an action
-				actionLock(function () {
-					state = action.apply(null, args);
+				inAction = true;
 
-					// let everyone know the state has changed
-					for (var i=0; i < listeners.length; i++) {
+				// reduce the state & args into the new state
+				state = reducer.apply(null, [state].concat(args));
+
+				// only notify if this is the original action
+				if (isOriginalAction) {
+					// let all the subscribers know what just happened
+					for (var i=0, listeners = stateListeners; i < listeners.length; i++) {
 						listeners[i](state);
 					}
-				});
+
+					// this is done, there is no longer an action running
+					inAction = false;
+				}
 
 				// return resulting state
 				return state;
 			};
 		},
 
+		inAction = false,
+
 		method;
 
-	// DEPRECATED: expose getState as explicit api on the store
-	getState.getState = function (callback) {
+	// DEPRECATED: expose store as explicit api on the store
+	store.getState = function (callback) {
 		if (typeof console !== 'undefined' && typeof console.error === 'function') {
-			console.error('Hoverboard: store.getState() is deprecated. Use store() instead.');
+			console.error('Hover: store.getState() is deprecated. Use store() instead.');
 		}
-		return getState(callback);
+		return store(callback);
 	};
 
-	// create actions on the getState api as well
+	// create actions on the store api as well
 	for (method in actions) {
-		getState[method] = createAction(actions[method]);
+		store[method] = createAction(actions[method]);
 	}
 
-	// return the getState function as the exposed api
-	return getState;
+	// return the store function as the exposed api
+	return store;
 };
 
-Hoverboard.compose = function (definition) {
-	var store = Hoverboard({
+Hover.compose = function (definition) {
+	var store = Hover({
 			s: function (state, newState) {
 				for (var i=0; i < transforms.length; i++) {
 					newState = transforms[i](newState);
@@ -202,11 +181,11 @@ Hoverboard.compose = function (definition) {
 	return store;
 };
 
-return Hoverboard;
+return Hover;
 
 })(); // execute immediately
 
 // export for CommonJS
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-	module.exports = Hoverboard;
+	module.exports = Hover;
 }

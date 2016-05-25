@@ -1,9 +1,9 @@
 /**
-	React mixin, for easily subscribing and unsubscribing to a Hoverboard store
+	React mixin, for easily subscribing and unsubscribing to a Hover store
 
 	Usage:
 
-		var SubscribeMixin = require('hoverboard/src/util/mixin');
+		var SubscribeMixin = require('hover/src/util/mixin');
 
 		React.createClass({
 			mixins: [
