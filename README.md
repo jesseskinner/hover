@@ -1,5 +1,5 @@
 <p align="center">
-    <img height="300" width="300" src="https://tfotw.com/hover.png" title="Hover"><br>
+    <img height="300" width="300" src="https://tfotw.com/hover-300px.png" title="Hover"><br>
 	A very lightweight data store<br>
 	with action reducers<br>
 	and state change listeners.
