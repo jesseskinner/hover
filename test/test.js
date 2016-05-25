@@ -90,6 +90,12 @@ describe('hover', function () {
 		});
 	});
 
+	describe('#getState', function () {
+		it('should work, but be deprecated', function () {
+			expect(Hover({}, 123).getState()).to.equal(123);
+		});
+	});
+
 	describe('#state', function () {
 		it('should return undefined by default', function () {
 			expect(Hover({})()).to.be.undefined;
