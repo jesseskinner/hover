@@ -274,6 +274,9 @@ describe('hover', function () {
 						setState = a;
 						getState = b;
 					};
+				},
+				sync: function (state) {
+					return state
 				}
 			}, 123);
 			var updateCount = 0;
@@ -284,6 +287,8 @@ describe('hover', function () {
 
 			var state = store.async();
 
+			store.sync();
+
 			expect(state).to.equal(123);
 			expect(store()).to.equal(123);
 			expect(getState()).to.equal(123);
@@ -293,7 +298,7 @@ describe('hover', function () {
 			expect(store()).to.equal(456);
 			expect(getState()).to.equal(456);
 
-			expect(updateCount).to.equal(2);
+			expect(updateCount).to.equal(3);
 		});
 	});
 

@@ -88,10 +88,12 @@ function Hover(actions, state) {
 					// only notify if this is the original action
 					if (isOriginalAction) {
 						notify();
-
-						// this is done, there is no longer an action running
-						inAction = false;
 					}
+				}
+
+				if (isOriginalAction) {
+					// this is done, there is no longer an action running
+					inAction = false;
 				}
 
 				// return resulting state
