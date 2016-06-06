@@ -49,6 +49,13 @@ function Hover(actions, state) {
 			return state;
 		},
 
+		notify = function () {
+			// let all the subscribers know what just happened
+			for (var i=0, listeners = stateListeners.slice(); i < listeners.length; i++) {
+				listeners[i](state);
+			}
+		},
+
 		// create an action for the api that calls an action handler and changes the state
 		createAction = function (reducer) {
 			// return a function that'll be attached to the api
@@ -56,22 +63,35 @@ function Hover(actions, state) {
 				// convert arguments to a normal array
 				var args = slice.call(arguments, 0),
 
-					isOriginalAction = !inAction;
+					isOriginalAction = !inAction,
+
+					result;
 
 				inAction = true;
 
 				// reduce the state & args into the new state
-				state = reducer.apply(null, [state].concat(args));
+				result = reducer.apply(null, [state].concat(args));
 
-				// only notify if this is the original action
-				if (isOriginalAction) {
-					// let all the subscribers know what just happened
-					for (var i=0, listeners = stateListeners; i < listeners.length; i++) {
-						listeners[i](state);
+				// if result is a function, it's for async purposes
+				if (isFunction(result)) {
+					// pass setState and getState to be used later
+					result(function (result) {
+						state = result;
+						notify();
+					}, function () {
+						return state;
+					});
+
+				} else {
+					state = result;
+
+					// only notify if this is the original action
+					if (isOriginalAction) {
+						notify();
+
+						// this is done, there is no longer an action running
+						inAction = false;
 					}
-
-					// this is done, there is no longer an action running
-					inAction = false;
 				}
 
 				// return resulting state

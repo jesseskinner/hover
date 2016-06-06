@@ -266,6 +266,35 @@ describe('hover', function () {
 			expect(store.add(2)).to.equal(6);
 		});
 
+		it('should allow returning a function for async state changes', function () {
+			var setState, getState
+			var store = Hover({
+				async: function () {
+					return function (a, b) {
+						setState = a;
+						getState = b;
+					};
+				}
+			}, 123);
+			var updateCount = 0;
+
+			store(function (state) {
+				updateCount++;
+			});
+
+			var state = store.async();
+
+			expect(state).to.equal(123);
+			expect(store()).to.equal(123);
+			expect(getState()).to.equal(123);
+
+			setState(456);
+
+			expect(store()).to.equal(456);
+			expect(getState()).to.equal(456);
+
+			expect(updateCount).to.equal(2);
+		});
 	});
 
 	describe('#(function)', function () {

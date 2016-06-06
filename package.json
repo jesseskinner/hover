@@ -1,6 +1,6 @@
 {
   "name": "hover",
-  "version": "3.0.0-alpha.4",
+  "version": "3.0.0-alpha.5",
   "description": "Very lightweight (anti-gravity?) data store, with action reducers and state change listeners.",
   "main": "src/index.js",
   "directories": {
