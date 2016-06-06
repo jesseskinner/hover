@@ -26,6 +26,8 @@ import Hover from 'hover'
 
 ## Concept
 
+Hover is a place to keep your state. You can pass in an initial state, but the only way to change the state afterwards is through action reducers you define.
+
 The basic usage of Hover is:
 
 ```javascript
