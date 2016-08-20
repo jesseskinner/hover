@@ -33,7 +33,7 @@
 		return wrapper;
 	}
 
-	var ClickCounter = Hover({
+	var clickCounter = new Hover({
 		reset: function () {
 			return {
 				value: 0,
@@ -48,24 +48,24 @@
 		}
 	});
 
-	ClickCounter = log(ClickCounter, function(action, args, state) {
+	clickCounter = log(clickCounter, function(action, args, state) {
 		console.log(action, args, state)
 	})
 
-	ClickCounter.reset();
+	clickCounter.reset();
 
 	// listen to changes to the state
-	var unsubscribe = ClickCounter(function(clickState){
+	var unsubscribe = clickCounter(function(clickState){
 		document.write(JSON.stringify(clickState) + "<br>");
 	});
 
-	ClickCounter.click('first');
-	ClickCounter.click('second');
-	ClickCounter.reset();
+	clickCounter.click('first');
+	clickCounter.click('second');
+	clickCounter.reset();
 
 	unsubscribe();
 
-	ClickCounter.click("This won't show up");
+	clickCounter.click("This won't show up");
 </script>
 
 </body>
