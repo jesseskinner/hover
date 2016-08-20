@@ -40,7 +40,7 @@ const actions = {
 
 const initialState = 0
 
-export default Hover(actions, initialState)
+export default new Hover(actions, initialState)
 
 // elsewhere
 import store from './store'
@@ -74,7 +74,7 @@ userStore(renderUserProfile)
 
 Here's an example rendering a React component:
 
-```javascript
+```jsx
 function renderUserProfile (user) {
 	ReactDOM.render(
 		<UserProfile user={user} actions={userStore} />,
@@ -88,7 +88,7 @@ userStore(renderUserProfile)
 
 ## Usage
 
-Here's how you might use Hover to keep track of clicks with a ClickCounter.
+Here's how you might use Hover to keep track of clicks with a clickCounter.
 
 ```javascript
 const actions = {
@@ -103,22 +103,22 @@ const actions = {
 
 const initialState = 0
 
-const ClickCounter = Hover(actions, initialState)
+const clickCounter = new Hover(actions, initialState)
 
 // listen to changes to the state
-const unsubscribe = ClickCounter(clickState =>
+const unsubscribe = clickCounter(clickState =>
 	document.write(JSON.stringify(clickState) + "<br>"
 )
 
-ClickCounter.click('first')
-ClickCounter.click('second')
+clickCounter.click('first')
+clickCounter.click('second')
 
 // reset back to zero
-ClickCounter.reset()
+clickCounter.reset()
 
 unsubscribe()
 
-ClickCounter.click("This won't show up")
+clickCounter.click("This won't show up")
 ```
 
 If you run this example, you'll see this:
@@ -140,7 +140,7 @@ Hover is a function that takes an actions object and returns a store object.
 ### Syntax
 
 ```javascript
-store = Hover(actions[, initialState])
+store = new Hover(actions[, initialState])
 ```
 
 #### `actions` object
@@ -151,7 +151,7 @@ store = Hover(actions[, initialState])
 
 	```javascript
 	// store is synchronous, actions are setters
-	store = Hover({
+	store = new Hover({
 		items: (state, items) => ({ items }),
 		error: (state, error) => ({ error })
 	}, {})
@@ -177,7 +177,7 @@ store = Hover(actions[, initialState])
 
 #### Return value
 
-`store = Hover(actions[, initialState])`
+`store = new Hover(actions[, initialState])`
 
 ##### `store` object methods
 
@@ -204,7 +204,7 @@ store = Hover(actions[, initialState])
 	- Calls an action handler on the store, passing through any arguments.
 
 		```javascript
-		store = Hover({
+		store = new Hover({
 			add: (state, number) => state + number
 		}, 0)
 
@@ -223,10 +223,10 @@ subscribing to any store members of the definition.
 
 ```javascript
 // create two stores
-const scoreStore = Hover({
+const scoreStore = new Hover({
     add: (state, score) => state + score
 }, 0)
-const healthStore = Hover({
+const healthStore = new Hover({
     hit: (state, amount) => state - amount
 }, 100)
 
@@ -269,7 +269,7 @@ const completedTodoStore = Hover.compose(todoStore, todos =>
 There are three ways to achieve this. One way is to load the API outside of the store, and call actions to pass in the loading state, data and/or error as it arrives:
 
 ```javascript
-const store = Hover({
+const store = new Hover({
 	loading: (state, isLoading) => ({ isLoading }),
 	data: (state, data) => ({ data }),
 	error: (state, error) => ({ error })
@@ -289,7 +289,7 @@ getDataFromAPI(params, (error, data) => {
 Another way is to make API calls from inside your actions.
 
 ```javascript
-const store = Hover({
+const store = new Hover({
 	load: (state, params) => {
 		getDataFromAPI(params, (error, data) =>
 			store.done(error, data)
@@ -316,7 +316,7 @@ import Hover from 'hover'
 
 const initialState = [{ id: 1, name: 'one' }, /* etc... */ }
 
-const itemStore = Hover({
+const itemStore = new Hover({
 	add: (list, item) => list.concat(item)
 }, initialState)
 
